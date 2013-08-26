@@ -1,0 +1,3 @@
+name = Jira Analyzer
+description = Retrieves Jira ticket statuses and the time spent in each.
+core = 7.x
