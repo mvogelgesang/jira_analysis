@@ -1,0 +1,143 @@
+<?php 
+/**
+ * @file
+ * A module that displays data about Jira tickets
+ */
+
+  /**
+   * Implements hook_help
+   * 
+   * Displays help and module information
+   * 
+   */
+   function jira_analysis_help($path, $arg) {
+   	switch($path) {
+		case "admin/help#jira_analysis": {
+			$returnVal = '<h3>' . t('About') . '</h3>'; 
+			$returnVal .= '<p>' . t('Displays data about Jira tickets') . '</p>';
+			return $returnVal;
+			break;
+		}
+   	}
+   } 
+
+
+ /**
+  * Implements hook_permission().
+  */
+  function jira_analysis_permission() {
+  	return array(
+		'administer Jira Analysis' => array(
+			'title' => t('Administer Jira Analysis'),
+			'description' => t('Perform administrative tasks on Jira Analysis functionality'),
+			),
+	);
+  }
+ 
+ /**
+  * Implements hook_menu().
+  */
+  function jira_analysis_menu() {
+  	$items = array();
+	/*
+	// Admin configuration group.
+	$items['admin/config/jira_analysis'] = array(
+	'title' => 'Jira Analysis',
+	'description' => 'Administer Jira Analysis',
+	'access arguments' => array('Administer Jira Analysis'),
+	);*/
+	
+	//Admin configuration - Settings.
+	$items['admin/config/jira_analysis/settings'] = array(
+	'title' => 'Jira Analysis Settings',
+	'description' => 'Manage Jira Analysis settings and configuration',
+	'access arguments' => array('Administer Jira Analysis'),
+	'page callback' => 'drupal_get_form',
+	'page arguments' => array('jira_analysis_admin_settings_form'),
+	'type' => MENU_NORMAL_ITEM,
+	);
+	
+	
+	return $items;
+  }
+ 
+ /**
+  * Implements hook_form().
+  */
+  function jira_analysis_admin_settings_form($node, &$form_state) {
+  	$form = array();
+	
+	$form['overview'] = array(
+	'#markup' => t('This interface allows administrators to manage general Jira Analysis Settings'),
+	'#prefix' => '<p>',
+	'#suffix' => '</p>',
+	);
+	
+	$form['jira_analysis_default_URL'] = array(
+		'#title' => t('URL'),
+		'#description' => t('Jira REST URL eg "http://yourJiraInstallation.com/jira/rest/api/2/". You must include "/jira/rest/api/2/".'),
+		'#type' => 'textfield',
+		'#default_value' => variable_get('jira_analysis_default_URL', ''),
+		
+	);
+	
+	$form['jira_analysis_default_user_name'] = array(
+		'#title' => t('User Name'),
+		'#description' => t(''),
+		'#type' => 'textfield',
+		'#default_value' => variable_get('jira_analysis_default_user_name', ''),
+		'#required' => TRUE
+	);
+	
+	$form['jira_analysis_default_password'] = array(
+		'#title' => t('Password'),
+		'#description' => t(''),
+		'#type' => 'textfield',
+		'#default_value' => variable_get('jira_analysis_default_password',''),
+		'#required' => TRUE
+	);
+	
+	$form['jira_analysis_default_status_list'] = array(
+		'#title' => t('Status List'),
+		'#description' => t('List of statuses that you will use'),
+		'#type' => 'list_text',
+		'#default_value' => variable_get('jira_analysis_default_status_list',array()),
+		'#required' => TRUE
+	);
+	
+	
+
+	
+	/*$form['submit'] = array(
+	'#type' => 'submit',
+	'#value' => t('Save'),
+	);*/
+	
+	return system_settings_form($form);
+	
+	//return $form;
+  }
+ 
+ /**
+  * Validates jira admin settings.
+  */
+  function jira_analysis_admin_settings_form_validate($form, &$form_state) {
+  	
+  }
+ 
+ /**
+  * Process a validated jira admin setting submission
+  */
+  function jira_admin_settings_form_submit($form, &$form_state) {
+	//Rebuild the form.
+	$form_state['rebuild'] = TRUE;
+	
+	// Save jira setting variables
+	variable_set('jira_analysis_default_URL', $form_state['values']['jira_analysis_default_url']);
+	variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
+  	variable_set('jira_analysis_default_password', $form_state['values']['jira_analysis_default_password']);
+	variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
+	
+	//Nofity User
+	drupal_set_message(t('Jira Analysis settings saved'));
+  } 

@@ -1,0 +1,41 @@
+<?php
+
+ /**
+ * @file
+ * Jira installation
+ */
+ 
+ /**
+  * Implements hook_install()
+  */
+ function jira_analysis_install() {
+ 	variable_set('jira_analysis_default_url', '');
+	variable_set('jira_analysis_default_user_name', '');
+	variable_set('jira_analysis_default_password', '');
+	variable_set('jira_analysis_default_status_list', array());
+	//get localization function for installation as t() may be unavailable
+	$t = get_t();
+	
+	//Give user feedback
+	drupal_set_message($t('Jira variables created.'));
+	
+	
+	
+	
+	
+ }
+ 
+ /**
+  * Implements hook_uninstall()
+  */
+function jira_analysis_uninstall(){
+	//Delete variables
+	variable_del('jira_analysis_default_url');
+	variable_del('jira_analysis_default_user_name');
+	variable_del('jira_analysis_default_password');
+	variable_del('jira_analysis_default_status_list');
+	
+	//Inform user of removal
+	$t = get_t();
+	drupal_set_message($t('Jira Analysis settings saved'));
+}
