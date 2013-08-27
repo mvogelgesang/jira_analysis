@@ -73,38 +73,58 @@
 	'#suffix' => '</p>',
 	);
 	
-	$form['jira_analysis_default_URL'] = array(
+	$form['jira_analysis_credential_fieldset'] = array(
+		'#title' => t('Jira Credentials'),
+		'#type' => 'fieldset',
+	);
+	
+	$form['jira_analysis_credential_fieldset']['jira_analysis_default_URL'] = array(
 		'#title' => t('URL'),
 		'#description' => t('Jira REST URL eg "http://yourJiraInstallation.com/jira/rest/api/2/". You must include "/jira/rest/api/2/".'),
 		'#type' => 'textfield',
 		'#default_value' => variable_get('jira_analysis_default_URL', ''),
-		
 	);
 	
-	$form['jira_analysis_default_user_name'] = array(
+	$form['jira_analysis_credential_fieldset']['jira_analysis_default_user_name'] = array(
 		'#title' => t('User Name'),
 		'#description' => t(''),
 		'#type' => 'textfield',
 		'#default_value' => variable_get('jira_analysis_default_user_name', ''),
-		'#required' => TRUE
+		'#required' => TRUE,
 	);
 	
-	$form['jira_analysis_default_password'] = array(
+	$form['jira_analysis_credential_fieldset']['jira_analysis_default_password'] = array(
 		'#title' => t('Password'),
 		'#description' => t(''),
-		'#type' => 'textfield',
+		'#type' => 'password',
 		'#default_value' => variable_get('jira_analysis_default_password',''),
-		'#required' => TRUE
+		'#required' => TRUE,
 	);
 	
-	$form['jira_analysis_default_status_list'] = array(
-		'#title' => t('Status List'),
-		'#description' => t('List of statuses that you will use'),
-		'#type' => 'list_text',
-		'#default_value' => variable_get('jira_analysis_default_status_list',array()),
-		'#required' => TRUE
-	);
-	
+	$users = array(
+    array('uid' => 1, 'first_name' => 'Indy', 'last_name' => 'Jones'),
+    array('uid' => 2, 'first_name' => 'Darth', 'last_name' => 'Vader'),
+    array('uid' => 3, 'first_name' => 'Super', 'last_name' => 'Man'),
+  );
+
+  /*$header = array(
+    'first_name' => t('First Name'),
+    'last_name' => t('Last Name'),
+  );
+  $options = array();
+  foreach ($users as $user) {
+    $options[$user['uid']] =array(
+      'first_name' => $user['first_name'],
+      'last_name' => $user['last_name'],
+    );
+  }
+  $form['table'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+    '#empty' => t('No users found'),
+  );
+	*/
 	
 
 	
@@ -123,6 +143,35 @@
   */
   function jira_analysis_admin_settings_form_validate($form, &$form_state) {
   	
+	$ch = curl_init($form_state['values']['jira_analysis_default_URL'].'status');
+	curl_setopt($ch, CURLOPT_USERPWD, $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password']);
+	curl_setopt($ch, CURLOPT_POST, FALSE);
+	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+	curl_setopt($ch, CURLOPT_HEADER, TRUE);
+	
+	$resp = curl_exec($ch);
+	$respCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+	if ($respCode != 200) {
+		form_set_error('jira_analysis_credential_fieldset', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
+	}
+	curl_close($ch);
+	
+/*
+	$ch = curl_init('http://ticketing.whitehouse.gov/rest/api/2/status');
+	curl_setopt($ch, CURLOPT_USERPWD, 'mvogelgesang:L@crosse0');
+	curl_setopt($ch, CURLOPT_POST, FALSE);
+	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+	curl_setopt($ch, CURLOPT_HEADER, TRUE);
+	
+	$resp = curl_exec($ch);
+	$respCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+	if ($respCode != 200) {
+		form_set_error('jira_analysis_credential_fieldset', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
+	}
+	curl_close($ch);
+ * */
   }
  
  /**
@@ -133,10 +182,10 @@
 	$form_state['rebuild'] = TRUE;
 	
 	// Save jira setting variables
-	variable_set('jira_analysis_default_URL', $form_state['values']['jira_analysis_default_url']);
+	variable_set('jira_analysis_default_URL', $form_state['values']['jira_analysis_default_URL']);
 	variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
   	variable_set('jira_analysis_default_password', $form_state['values']['jira_analysis_default_password']);
-	variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
+	//variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
 	
 	//Nofity User
 	drupal_set_message(t('Jira Analysis settings saved'));

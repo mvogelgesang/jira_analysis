@@ -17,7 +17,7 @@
 	$t = get_t();
 	
 	//Give user feedback
-	drupal_set_message($t('Jira variables created.'));
+	drupal_set_message($t('Jira Analysis variables created.'));
 	
 	
 	
