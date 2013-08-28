@@ -72,20 +72,22 @@
 	'#prefix' => '<p>',
 	'#suffix' => '</p>',
 	);
-	
+	/*
 	$form['jira_analysis_credential_fieldset'] = array(
 		'#title' => t('Jira Credentials'),
 		'#type' => 'fieldset',
-	);
+	);*/
 	
-	$form['jira_analysis_credential_fieldset']['jira_analysis_default_URL'] = array(
+	//$form['jira_analysis_credential_fieldset']
+	$form['jira_analysis_default_URL'] = array(
 		'#title' => t('URL'),
 		'#description' => t('Jira REST URL eg "http://yourJiraInstallation.com/jira/rest/api/2/". You must include "/jira/rest/api/2/".'),
 		'#type' => 'textfield',
 		'#default_value' => variable_get('jira_analysis_default_URL', ''),
 	);
 	
-	$form['jira_analysis_credential_fieldset']['jira_analysis_default_user_name'] = array(
+	//$form['jira_analysis_credential_fieldset']
+	$form['jira_analysis_default_user_name'] = array(
 		'#title' => t('User Name'),
 		'#description' => t(''),
 		'#type' => 'textfield',
@@ -93,7 +95,8 @@
 		'#required' => TRUE,
 	);
 	
-	$form['jira_analysis_credential_fieldset']['jira_analysis_default_password'] = array(
+	//$form['jira_analysis_credential_fieldset']
+	$form['jira_analysis_default_password'] = array(
 		'#title' => t('Password'),
 		'#description' => t(''),
 		'#type' => 'password',
@@ -101,30 +104,91 @@
 		'#required' => TRUE,
 	);
 	
-	$users = array(
-    array('uid' => 1, 'first_name' => 'Indy', 'last_name' => 'Jones'),
-    array('uid' => 2, 'first_name' => 'Darth', 'last_name' => 'Vader'),
-    array('uid' => 3, 'first_name' => 'Super', 'last_name' => 'Man'),
+  //create options array
+  $statusList = array(
+  	array(
+		"description" => "The issue is open and ready for the assignee to start work on it.",
+		"name" => "Open",
+		"id" => 1
+	),
+	array(
+		"description" => "",
+		"name" => "Pre-Slated",
+		"id" => 10023
+	),	
+	array(
+		"description" => "The issue is awaiting work by a developer.",
+		"name" => "Slated",
+		"id" => 10000
+	),
+	array(
+		"description" => "Work has begun on the issue.",
+		"name" => "Development in Progress",
+		"id" => 10001
+	),
+	array(
+		"description" => "The issue is being reviewed by a stakeholder.",
+		"name" => "Stakeholder Review in Progress",
+		"id" => 10029
+	),
+	array(
+		"description" => "This issue is waiting to have code reviewed by another developer.",
+		"name" => "Queued for Code Review",
+		"id" => 10016
+	),
+	array(
+		"description" => "The issue is having code reviewed by a developer.",
+		"name" => "Code Review in Progress",
+		"id" => 10017
+	),
+	array(
+		"description" => "The issue is awaiting staging.",
+		"name" => "Queued for Staging QA",
+		"id" => 10002
+	),
+	array(
+		"description" => "The issue is staged for QA review.",
+		"name" => "Staged for QA",
+		"id" => 10003
+	),
+	array(
+		"description" => "",
+		"name" => "Ready for Release",
+		"id" => 10027
+	),
+	array(
+		"description" => "A resolution has been taken, and it is awaiting final verification in production.",
+		"name" => "Newly Released",
+		"id" => 5
+	),
+	array(
+		"description" => "The issue is considered finished, the resolution is correct. Issues which are closed can be reopened.",
+		"name" => "Closed",
+		"id" => 6
+	),
+	array(
+		"description" => "",
+		"name" => "Backlog",
+		"id" => 10020
+	),
+
   );
 
-  /*$header = array(
-    'first_name' => t('First Name'),
-    'last_name' => t('Last Name'),
+	
+
+  $header = array(
+    'name' => t('Status Name'),
+    'description' => t('Description'),
   );
-  $options = array();
-  foreach ($users as $user) {
-    $options[$user['uid']] =array(
-      'first_name' => $user['first_name'],
-      'last_name' => $user['last_name'],
-    );
-  }
-  $form['table'] = array(
+  
+  
+  $form['jira_analysis_statuses'] = array(
     '#type' => 'tableselect',
     '#header' => $header,
-    '#options' => $options,
-    '#empty' => t('No users found'),
+    '#options' => $statusList,
+    '#empty' => t('No statuses found'),
   );
-	*/
+	
 	
 
 	
@@ -142,8 +206,8 @@
   * Validates jira admin settings.
   */
   function jira_analysis_admin_settings_form_validate($form, &$form_state) {
-  	
-	$ch = curl_init($form_state['values']['jira_analysis_default_URL'].'status');
+  	dpm($form_state);
+	/*$ch = curl_init($form_state['values']['jira_analysis_default_URL'].'status');
 	curl_setopt($ch, CURLOPT_USERPWD, $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password']);
 	curl_setopt($ch, CURLOPT_POST, FALSE);
 	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
@@ -156,7 +220,7 @@
 		form_set_error('jira_analysis_credential_fieldset', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
 	}
 	curl_close($ch);
-	
+	*/
 /*
 	$ch = curl_init('http://ticketing.whitehouse.gov/rest/api/2/status');
 	curl_setopt($ch, CURLOPT_USERPWD, 'mvogelgesang:L@crosse0');
@@ -177,7 +241,7 @@
  /**
   * Process a validated jira admin setting submission
   */
-  function jira_admin_settings_form_submit($form, &$form_state) {
+  function jira_analysis_admin_settings_form_submit($form, &$form_state) {
 	//Rebuild the form.
 	$form_state['rebuild'] = TRUE;
 	
@@ -185,6 +249,7 @@
 	variable_set('jira_analysis_default_URL', $form_state['values']['jira_analysis_default_URL']);
 	variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
   	variable_set('jira_analysis_default_password', $form_state['values']['jira_analysis_default_password']);
+	//variable_set('jira_analysis_default_statuses', $form_state['values']['jira_analysis_statuses']);
 	//variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
 	
 	//Nofity User
