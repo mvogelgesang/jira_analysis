@@ -57,14 +57,26 @@
 	'type' => MENU_NORMAL_ITEM,
 	);
 	
-	
+	//Admin configuration - Settings.
+	$items['admin/config/jira_analysis/report'] = array(
+	'title' => 'Jira Analysis Report',
+	'description' => 'View Jira Report',
+	'access arguments' => array('Jira Analysis Report'),
+	'page callback' => 'drupal_get_form',
+	'page arguments' => array('jira_analysis_report_form'),
+	'type' => MENU_NORMAL_ITEM,
+	);
 	return $items;
   }
  
+
+  
+  
  /**
   * Implements hook_form().
   */
   function jira_analysis_admin_settings_form($node, &$form_state) {
+
   	$form = array();
 	
 	$form['overview'] = array(
@@ -79,11 +91,11 @@
 	);*/
 	
 	//$form['jira_analysis_credential_fieldset']
-	$form['jira_analysis_default_URL'] = array(
+	$form['jira_analysis_default_url'] = array(
 		'#title' => t('URL'),
-		'#description' => t('Jira REST URL eg "http://yourJiraInstallation.com/jira/rest/api/2/". You must include "/jira/rest/api/2/".'),
+		'#description' => t('Jira REST URL eg "http://yourJiraInstallation.com/rest/api/2/". You must include "/rest/api/2/".'),
 		'#type' => 'textfield',
-		'#default_value' => variable_get('jira_analysis_default_URL', ''),
+		'#default_value' => variable_get('jira_analysis_default_url', ''),
 	);
 	
 	//$form['jira_analysis_credential_fieldset']
@@ -104,138 +116,46 @@
 		'#required' => TRUE,
 	);
 	
-  //create options array
-  $statusList = array(
-  	array(
-		"description" => "The issue is open and ready for the assignee to start work on it.",
-		"name" => "Open",
-		"id" => 1
-	),
-	array(
-		"description" => "",
-		"name" => "Pre-Slated",
-		"id" => 10023
-	),	
-	array(
-		"description" => "The issue is awaiting work by a developer.",
-		"name" => "Slated",
-		"id" => 10000
-	),
-	array(
-		"description" => "Work has begun on the issue.",
-		"name" => "Development in Progress",
-		"id" => 10001
-	),
-	array(
-		"description" => "The issue is being reviewed by a stakeholder.",
-		"name" => "Stakeholder Review in Progress",
-		"id" => 10029
-	),
-	array(
-		"description" => "This issue is waiting to have code reviewed by another developer.",
-		"name" => "Queued for Code Review",
-		"id" => 10016
-	),
-	array(
-		"description" => "The issue is having code reviewed by a developer.",
-		"name" => "Code Review in Progress",
-		"id" => 10017
-	),
-	array(
-		"description" => "The issue is awaiting staging.",
-		"name" => "Queued for Staging QA",
-		"id" => 10002
-	),
-	array(
-		"description" => "The issue is staged for QA review.",
-		"name" => "Staged for QA",
-		"id" => 10003
-	),
-	array(
-		"description" => "",
-		"name" => "Ready for Release",
-		"id" => 10027
-	),
-	array(
-		"description" => "A resolution has been taken, and it is awaiting final verification in production.",
-		"name" => "Newly Released",
-		"id" => 5
-	),
-	array(
-		"description" => "The issue is considered finished, the resolution is correct. Issues which are closed can be reopened.",
-		"name" => "Closed",
-		"id" => 6
-	),
-	array(
-		"description" => "",
-		"name" => "Backlog",
-		"id" => 10020
-	),
-
-  );
-
-	
-
-  $header = array(
-    'name' => t('Status Name'),
-    'description' => t('Description'),
-  );
-  
-  
-  $form['jira_analysis_statuses'] = array(
-    '#type' => 'tableselect',
-    '#header' => $header,
-    '#options' => $statusList,
-    '#empty' => t('No statuses found'),
-  );
+ 
 	
 	
 
 	
-	/*$form['submit'] = array(
+	$form['submit'] = array(
 	'#type' => 'submit',
 	'#value' => t('Save'),
-	);*/
+	);
 	
-	return system_settings_form($form);
+	return $form;
 	
 	//return $form;
   }
+ 
+
  
  /**
   * Validates jira admin settings.
   */
   function jira_analysis_admin_settings_form_validate($form, &$form_state) {
   	dpm($form_state);
-	/*$ch = curl_init($form_state['values']['jira_analysis_default_URL'].'status');
-	curl_setopt($ch, CURLOPT_USERPWD, $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password']);
+  	$cred = $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password'];
+  	
+	$ch = curl_init($form_state['values']['jira_analysis_default_url'].'status');
+	//curl_setopt($ch, CURLOPT_USERPWD, $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password']);
+	curl_setopt($ch, CURLOPT_USERPWD, $cred);
 	curl_setopt($ch, CURLOPT_POST, FALSE);
 	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 	curl_setopt($ch, CURLOPT_HEADER, TRUE);
 	
 	$resp = curl_exec($ch);
-	$respCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
-	if ($respCode != 200) {
-		form_set_error('jira_analysis_credential_fieldset', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
-	}
-	curl_close($ch);
-	*/
-/*
-	$ch = curl_init('http://ticketing.whitehouse.gov/rest/api/2/status');
-	curl_setopt($ch, CURLOPT_USERPWD, 'mvogelgesang:L@crosse0');
-	curl_setopt($ch, CURLOPT_POST, FALSE);
-	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-	curl_setopt($ch, CURLOPT_HEADER, TRUE);
 	
-	$resp = curl_exec($ch);
 	$respCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
 	if ($respCode != 200) {
-		form_set_error('jira_analysis_credential_fieldset', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
+		form_set_error('jira_analysis_default_password', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
 	}
 	curl_close($ch);
- * */
+
   }
  
  /**
@@ -246,12 +166,323 @@
 	$form_state['rebuild'] = TRUE;
 	
 	// Save jira setting variables
-	variable_set('jira_analysis_default_URL', $form_state['values']['jira_analysis_default_URL']);
+	variable_set('jira_analysis_default_url', $form_state['values']['jira_analysis_default_url']);
 	variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
   	variable_set('jira_analysis_default_password', $form_state['values']['jira_analysis_default_password']);
-	//variable_set('jira_analysis_default_statuses', $form_state['values']['jira_analysis_statuses']);
 	//variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
 	
 	//Nofity User
 	drupal_set_message(t('Jira Analysis settings saved'));
   } 
+  
+  /**
+   * Implements hook_node_view().
+   */
+ function jira_analysis_node_view($node, $view_mode, $langcode) {
+ 	if ($node->type == 'jira_analysis' && $view_mode == 'full'){ 
+	 	$node->content['jira_analysis'] = array(
+    	  '#markup' => theme('jira_analysis', array(
+        	'node' => $node,
+      	)),
+      	'#weight' => 100,
+    	);
+	}
+ } 
+ 
+ /**
+  * Implements hook_theme().
+  */
+function jira_analysis_theme($existing, $type, $theme, $path) {
+	return array(
+		'jira_analysis' => array(
+			'variables' => array('node' => NULL),
+		),
+	);
+} 
+
+function theme_jira_analysis($variables) {
+	module_load_include('inc', 'highcharts');
+	//dpm($variables);
+	$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
+	$searchString = 'search?jql=' . $jql . '&fields=key,changelog,resolution,customfield_10245,fixVersions,status,-description,-customfield_10245';
+	
+	$jsonResp = getJiraResp($searchString);
+	$curlIssues = $jsonResp->{'issues'};
+	
+	$status_list = build_status_list($variables);
+	$status_column_series_array = transform_to_status_column_series($curlIssues, $status_list);
+	$xAxisCategories = $status_column_series_array[1];
+	$series = $status_column_series_array[0];
+	$options =custom_column_jira_options($xAxisCategories,$series);
+	$attributes = array('style' => array('height: 400px;'));
+	return highcharts_render($options, $attributes);
+	//dpm($series);
+	return "nothing failed yet!";
+}
+
+/**
+ * Creates a list of statuses for use by functions that transform json into data series
+ * 
+ * @param array $variables 
+ * 	The variables array from the current page
+ * 
+ * @return array $ret_status_list
+ * 	An associative array of keys and values for each status
+ */
+function build_status_list($variables) {
+	$ret_status_list = array();
+	$picked_statuses = $variables['node']->field_jira_status['und'];
+	
+	for ($i=0; $i<count($picked_statuses); $i++) {
+		$ret_status_list[$picked_statuses[$i]['value']] = $variables['node']->content['field_jira_status'][$i]['#markup'];
+	}
+	return $ret_status_list; 
+}
+
+/**
+ * Makes a condensed call to Jira requesting specific information (created date, status, changelog) about an issueKey
+ * 
+ * @param string $issueKey
+ * 	A Jira issue key eg JIRA-1234
+ * 
+ * @return object 
+ * 	A Jira object containing ID, Key, fields (created date, status, changelog)
+ */
+function getIssueDetails($issueKey) {
+	$url = 'issue/' . $issueKey . '?fields=created,status&expand=changelog';
+	return getJiraResp($url);
+}
+
+/**
+ * Makes an API call to Jira given the defaults set up in Admin
+ * 
+ * @param string $query_string 
+ * 	A resource (status, issue, etc) followed by a query string (if applicable)
+ * 
+ * @return object
+ * 	A Jira object
+ */
+function getJiraResp($query_string) {
+	$cred = variable_get('jira_analysis_default_user_name').':'.variable_get('jira_analysis_default_password');
+  	$durl = variable_get('jira_analysis_default_url');
+	$ch = curl_init($durl.$query_string);
+	curl_setopt($ch, CURLOPT_USERPWD, $cred);
+	curl_setopt($ch, CURLOPT_POST, FALSE);
+	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+	curl_setopt($ch, CURLOPT_HEADER, TRUE);
+	
+	$resp = curl_exec($ch);
+	$respSplit = list($header, $body) = explode("\r\n\r\n", $resp, 2);
+	$jsonResp = $respSplit[1];
+
+	curl_close($ch);
+return json_decode($jsonResp);
+}
+
+
+function transform_to_status_column_series($curlIssues, $statusList) {
+	for($i=0; $i < count($curlIssues); $i++) {
+				$keyArray[] = $curlIssues[$i]->{'key'};
+				//get an extended object back representing the current ticket
+				$currentIssue = getIssueDetails($curlIssues[$i]->{'key'});
+				//get the cangelog history from that ticket
+				$history = $currentIssue->{'changelog'}->{'histories'};
+				
+				//set the fromDate which will be updated as we loop through statuses
+				$fromDate = $currentIssue->{'fields'}->{'created'};
+				$toStatus = '';
+				
+				//create an object that will hold select data for each issue
+				$tempIssue = new stdClass;
+				$tempIssue->key = $curlIssues[$i]->{'key'};
+				//create an array of the issues and their resolution status
+				$tempIssue->resolution = $curlIssues[$i]->{'fields'}->{'resolution'}->{'name'};
+				$tempIssue->resolutionDate = $curlIssues[$i]->{'fields'}->{'resolutionDate'};
+				//insert the date the ticket was created
+				$tempIssue->createdDate = $currentIssue->{'fields'}->{'created'};
+				
+				//create arrays for changeLog (detailed change view) and issuestatuses (summary view)
+				$tempIssue->issueChangeLog = array();
+				$tempIssue->issueStatuses = array();
+				
+				//print "<pre>"; print_r($history); print "</pre>"; print $i;
+				//print "<br /><br />Issue " . $curlIssues[$i]->{'key'} . ' was created on ' . date('m/d/y h:i a',strtotime($currentIssue->{'fields'}->{'created'})) . "<br />"; 
+				//loop the issue history and pull out status changes
+				for($j=0; $j < count($history); $j++) {
+					//print "<pre>"; print_r($gantt); print "</pre> <br />";	
+					//a history record will record changes to many fields in an array (items)
+					$historyItems = $history[$j]->{'items'};
+					//loop this array and check to see if the status was updated, if not then 
+					for($k=0; $k < count($historyItems); $k++) {
+						if($historyItems[$k]->{'field'} == 'status') {
+							//create an array for the changelogobject
+							$statusObj = new stdClass;
+							$statusObj->fromString = $historyItems[$k]->{'fromString'};
+							$statusObj->fromID = $historyItems[$k]->{'from'};
+							$statusObj->toString = $historyItems[$k]->{'toString'};
+							$statusObj->toID = $historyItems[$k]->{'to'};
+							$statusObj->author = $history[$j]->{'author'}->{'displayName'};
+							$statusObj->createdDate = $history[$j]->{'created'};
+							$tempIssue->{'issueChangeLog'}[] = $statusObj;	
+							//print $curlIssues[$i]->{'key'} . '  status of: ' . $historyItems[$k]->{'fromString'} . ' to a status of: ' . $historyItems[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
+							//create an object for gantt charts
+							
+							//create an array of statuses and duration
+							$statusDurationObj = new stdClass;
+							$statusDurationObj->duration = strtotime($history[$j]->{'created'}) - strtotime($fromDate);
+							$statusDurationObj->status = $historyItems[$k]->{'fromString'};
+							$tempIssue->{'issueStatuses'}[] = $statusDurationObj;
+							
+							$toStatus = $historyItems[$k]->{'toString'};
+							$fromDate = $history[$j]->{'created'};
+							//print "<br />  <pre> <h3>" . $curlIssues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
+						}
+					}
+					
+				}
+				//print "<strong>" . $i . '---' . $toStatus . "</strong> ---" . time() . "---" . strtotime($fromDate) . "<br />";
+				if ($toStatus != 'Closed' && $toStatus != '') {
+					$tempStatusObj = new stdClass; 
+					$tempStatusObj->duration = (time() - strtotime($fromDate));
+					$tempStatusObj->status = $toStatus;
+					$tempIssue->{'issueStatuses'}[] = $tempStatusObj;
+				}
+				$issueArray[] = $tempIssue;	
+			}
+			//print "<pre>"; print_r($tempIssue->{'issueStatuses'}); print "</pre>";
+			//$resolutionArray = getIssueResolutionArray($issueArray);
+			//print "<pre>"; print_r($resolutionArray); print "</pre>";
+			//create empty dataSeries 
+			
+			
+			//create the array of series
+			$seriesArr = array();
+			foreach($statusList as $status) {
+				//print "<br />"; print_r($status[id]); print "<br />";
+				$tempObj = new stdClass;
+				$tempObj->{'name'} = "'" . $status . "'";
+				$tempObj->{'data'} = array();
+				
+				//loop through the issue array
+				for($i=0; $i < count($issueArray); $i++) {
+					//print "<br /> " . $i . "-- " . " <pre>"; print_r($issueArray[$i]); print "</pre> <br />";
+					//loop through the history of each issue if there are issues
+					if(count($issueArray[$i]->{'issueStatuses'}) > 0) {
+						$durationSum = 0;
+						for($j=0; $j < count($issueArray[$i]->{'issueStatuses'}); $j++) {
+							if($status == $issueArray[$i]->{'issueStatuses'}[$j]->{'status'}) {
+								$durationSum += $issueArray[$i]->{'issueStatuses'}[$j]->{'duration'};
+							}
+						}
+						if ($durationSum > 0) {
+							$tempObj->{'data'}[] = $durationSum/60/60/24;
+						}
+						else {
+							$tempObj->{'data'}[] = 0;
+						}
+					}
+					else {
+						$tempObj->{'data'}[] = 0;
+					}
+					//print "<br /> <h3> " . $i . "-- " . $issueArray[$i]->{'issueKey'} . "</h3> <pre>"; print_r($tempObj); print "</pre> <br />";	
+					
+				}
+				$seriesArr[] = $tempObj;
+			} 
+
+return array($seriesArr,$keyArray);
+}
+
+/**
+ * Column chart high charts object.
+ * 
+ * @see highcharts_render()
+ */
+function custom_column_jira_options($xAxisCategories,$series) {
+	$options = new stdClass();
+	
+	$options->chart->type = 'column';
+	
+	$options->title->text = 'Title placeholder';
+	$options->tooltip->formatter = "function() {
+	               var s = '<b>'+ this.x + ' - ' + this.series.name + '<br /><br />' + Math.round(this.y*100)/100 + ' days';// + this.point.series.name + '</b><br /> <b>Start:</b> ' + new Date(this.point.low) + '<br /><b>End: </b>' + new Date(this.point.high) ;
+	               console.log(this.point);
+	               return s;
+	            }";
+	$options->xAxis->categories = $xAxisCategories;
+	$options->xAxis->labels->rotation = -45;
+	$options->xAxis->labels->align = 'right';
+	$options->yAxis->min = 0;
+	$options->title->title->text = 'Time in Development (Days)';
+	
+	$options->plotOptions->series->stacking = 'normal';
+	$options->series=$series;
+	
+	return $options;
+}
+ /**
+  * Pie-basic highcharts options object.
+  *
+  * @see highcharts_render()
+  */
+ function custom_pie_basic_options() {
+   $options = new stdClass();
+ 
+   // Chart.
+   $options->chart = (object)array(
+     'renderTo' => 'container',
+     'plotBackgroundColor' => NULL,
+     'plotBorderWidth' => NULL,
+     'plotShadow' => FALSE,
+   );
+ 
+   // Title.
+   $options->title->text = t('Pies');
+ 
+   // Tooltip.
+   // Normally formatter is a function callback. For now we'll make it a string.
+   // @todo whenever this is user defined (views config, etc) be sure to sanitize
+   // this string before passing to highcharts_render().
+   $options->tooltip->formatter = "function() {return '<b>'+ this.point.name +'</b>: '+ this.percentage +' %';}";
+ 
+   // Plot options.
+   $options->plotOptions->pie = (object)array(
+     'allowPointSelect' => TRUE,
+     'cursor' => 'pointer',
+     'dataLabels' => array(
+       'enabled' => FALSE,
+     ),
+     'showInLegend' => TRUE,
+   );
+ 
+   // Series.
+   $options->series = array();
+   $series = new StdClass();
+   $series->type = 'pie';
+   $series->name = 'Slices';
+   $series->data = array();
+   $series->data[] = array('Banana creme', 45.0);
+   $series->data[] = array('Pumpkin', 26.8);
+ 
+   // Selected item is an object.
+   $selected = new stdClass();
+   $selected->name = 'Apple';
+   $selected->y = 12.8;
+   $selected->sliced = TRUE;
+   $selected->selected = TRUE;
+   $series->data[] = $selected;
+ 
+   $series->data[] = array('Lemon merengue', 8.5);
+   $series->data[] = array('Mincemeat', 6.2);
+   $series->data[] = array('Others', 0.7);
+ 
+   $options->series[] = $series;
+ 
+   // Diable credits.
+   $options->credits->enabled = FALSE;
+ 
+   return $options;
+ }
+
+ 

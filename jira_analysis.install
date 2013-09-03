@@ -19,23 +19,137 @@
 	//Give user feedback
 	drupal_set_message($t('Jira Analysis variables created.'));
 	
+	//define a content type
+	$content_type = array(
+		'type'=> 'jira_analysis',
+		'name' => $t('Jira Analysis'),
+		'description' => $t('A report of Jira Tickets'),
+		'title_label' => $t('Report Type'),
+		'base' => 'node_content',
+		'custom' => TRUE,
+	);
+	
+	// Set remaining definitions with defaults
+	$node_type = node_type_set_defaults($content_type);
+	
+	// Save content type
+	node_type_save($node_type);
+	
+	// Add a field for the body
+	node_add_body_field($node_type, $t('Description'));
+	
+	//Create fields
+	/*$fields = array();
+	
+	 //create options array
+	  $statusList = array(
+	  	1 => t("Open"),
+		10023 => t("Pre-Slated"),
+		10000 => t("Slated"),
+		10001 => t("Development in Progress"),
+		10029 => t("Stakeholder Review in Progress"),
+		10016 => t("Queued for Code Review"),
+		10017 => t("Code Review in Progress"),
+		10002 => t("Queued for Staging QA"),
+		10003 => t("Staged for QA"),
+		10027 => t("Ready for Release"),
+		5 => t("Newly Released"),
+		6 => t("Closed"),
+		10020 => t("Backlog"),
+	  );
+
+	
+
+  
+  
+  
+  $fields['jira_analysis_statuses'] = array(
+    'type' => 'checkboxes',
+    'options' => $statusList,
+  );*/
+  
+	$fields['jira_analysis_fixversion'] = array(
+		'field_name' => 'jira_analysis_fixversion',
+		'type' => 'text',
+		'settings' => array(
+			'max_length' => 75,
+		),
+	);
+	
+	
+	
+	//loop through the array and create fields
+	foreach ($fields as $field) {
+		field_create_field($field);
+	}
+	
+	// Create Field Instances
+	$instances = array();
+	
+	$instances['jira_analysis_fixversion'] = array(
+		'field_name' => 'jira_analysis_fixversion',
+		'label' => $t('Fix Version to use'),
+		'description' => $t('Fix version(s) that ticket must be in'),
+		'widget' => array(
+			'type' => 'tableselect',
+		),
+		'required' => FALSE,
+		'settings' => array(
+			'text_processing' => 0,
+		),
+	);
 	
 	
 	
 	
+	// 
+	foreach ($instances as $instance) {
+		$instance['entity_type'] = 'node';
+		$instance['bundle'] = 'jira_analysis';
+		field_create_instance($instance);
+	}
  }
  
  /**
   * Implements hook_uninstall()
   */
 function jira_analysis_uninstall(){
+	$t = get_t();
+	
 	//Delete variables
 	variable_del('jira_analysis_default_url');
 	variable_del('jira_analysis_default_user_name');
 	variable_del('jira_analysis_default_password');
-	variable_del('jira_analysis_default_status_list');
+
 	
+	// Get all node ids with  Jira Analysis Content type
+	$sql_query = 'SELECT nid ';
+	$sql_query .= 'FROM {node} ';
+	$sql_query .= 'WHERE {node}.type = :type';
+	$result = db_query($sql_query, array(':type' => 'jira_analysis'));
+	
+	$nids = array();
+	foreach ($result as $row){
+		$nids[] = $row->nid;
+	}
+	
+	//Delete all windfarm content
+	node_delete_multiple($nids);
+	drupal_set_message($t('Jira Analysis Content removed'));
+	
+	// Remove all fields and field instances
+	foreach (field_info_instances('node','jira_analysis') as $field_name => $instance) {
+		field_delete_instance($instance);
+	}
+	
+	drupal_set_message($t('Jira Analysis field and field instances removed'));
+	
+	node_type_delete('jira_analysis');
+	
+	drupal_set_message($t('Jira Analysis contant type removed'));
+	
+	field_purge_batch(1000);
 	//Inform user of removal
-	$t = get_t();
+	
 	drupal_set_message($t('Jira Analysis settings saved'));
 }
