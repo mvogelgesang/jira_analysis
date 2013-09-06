@@ -116,7 +116,19 @@
 		'#required' => TRUE,
 	);
 	
- 
+	$result = db_query('SELECT status_id, status_name FROM jira_analysis_status order by status_name');
+	$status_options_array = array();
+	foreach ($result as $record) {
+		$tempID = $record->{'status_id'};
+		$status_options_array[$tempID] = $record->{'status_name'};
+	}
+	
+ 	$form['jira_analysis_default_statuses'] = array(
+		'#title' => t('Statuses'),
+		'#description' => t('Choose the Jira statuses that you would like to have selected by default'),
+		'#type' => 'checkboxes',
+		'#options' => $status_options_array,
+	);	
 	
 	
 
@@ -137,7 +149,7 @@
   * Validates jira admin settings.
   */
   function jira_analysis_admin_settings_form_validate($form, &$form_state) {
-  	dpm($form_state);
+  	//dpm($form_state);
   	$cred = $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password'];
   	
 	$ch = curl_init($form_state['values']['jira_analysis_default_url'].'status');
@@ -147,16 +159,43 @@
 	curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 	curl_setopt($ch, CURLOPT_HEADER, TRUE);
-	
 	$resp = curl_exec($ch);
-	
+	$respSplit = list($header, $body) = explode("\r\n\r\n", $resp, 2);
+	$jsonResp = json_decode($respSplit[1]);
+
 	$respCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
 	if ($respCode != 200) {
 		form_set_error('jira_analysis_default_password', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
 	}
+	else {
+		//dpm($jsonResp);
+		$schema = drupal_get_schema('jira_analysis_status');
+		dpm($jsonResp[0]->{'id'});
+		//if the schema is empty, insert data  
+			foreach($jsonResp as $status) {
+				$nid = db_insert('jira_analysis_status') // Table name no longer needs {}
+				->fields(array(
+				  'status_id' => $status->{'id'},
+				  'status_name' => $status->{'name'},
+				  'status_description' => $status->{'description'},
+				  'created' => REQUEST_TIME,
+				))
+				->execute();	
+			}
+	}
 	curl_close($ch);
 
   }
+ 
+ /**
+  * Create an options array for inserting Statuses
+  */
+ function create_status_list_options($jira_status_list_response) {
+ 	$list_len = count($jira_status_list_response);	
+ 	for($i=0; $i<$list_len; $i++) {
+ 		
+ 	}
+ }
  
  /**
   * Process a validated jira admin setting submission
@@ -202,22 +241,24 @@ function jira_analysis_theme($existing, $type, $theme, $path) {
 
 function theme_jira_analysis($variables) {
 	module_load_include('inc', 'highcharts');
-	//dpm($variables);
-	$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
+	dpm($variables);
+	//$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
+	$jql = urlencode('fixVersion="API v2"') . urlencode(' AND team in (ODS, "Acquia NMT")  ORDER BY createdDate asc');
 	$searchString = 'search?jql=' . $jql . '&fields=key,changelog,resolution,customfield_10245,fixVersions,status,-description,-customfield_10245';
 	
 	$jsonResp = getJiraResp($searchString);
 	$curlIssues = $jsonResp->{'issues'};
-	
+	dpm($curlIssues);
 	$status_list = build_status_list($variables);
 	$status_column_series_array = transform_to_status_column_series($curlIssues, $status_list);
+	dpm($status_column_series_array);
 	$xAxisCategories = $status_column_series_array[1];
 	$series = $status_column_series_array[0];
 	$options =custom_column_jira_options($xAxisCategories,$series);
-	$attributes = array('style' => array('height: 400px;'));
+	$attributes = array('style' => array('height: 700px;'));
 	return highcharts_render($options, $attributes);
 	//dpm($series);
-	return "nothing failed yet!";
+	//return "nothing failed yet!";
 }
 
 /**
@@ -355,7 +396,7 @@ function transform_to_status_column_series($curlIssues, $statusList) {
 			//print "<pre>"; print_r($resolutionArray); print "</pre>";
 			//create empty dataSeries 
 			
-			
+			dpm($issueArray);
 			//create the array of series
 			$seriesArr = array();
 			foreach($statusList as $status) {
@@ -402,7 +443,7 @@ return array($seriesArr,$keyArray);
 function custom_column_jira_options($xAxisCategories,$series) {
 	$options = new stdClass();
 	
-	$options->chart->type = 'column';
+	$options->chart->type = 'bar';
 	
 	$options->title->text = 'Title placeholder';
 	$options->tooltip->formatter = "function() {
@@ -411,11 +452,15 @@ function custom_column_jira_options($xAxisCategories,$series) {
 	               return s;
 	            }";
 	$options->xAxis->categories = $xAxisCategories;
-	$options->xAxis->labels->rotation = -45;
+	//$options->xAxis->labels->rotation = -45;
 	$options->xAxis->labels->align = 'right';
+	$options->xAxis->min = 2;
+	//$options->xAxis->max = 30;
 	$options->yAxis->min = 0;
 	$options->title->title->text = 'Time in Development (Days)';
-	
+	$options->rangeSelector->enabled = true;
+	//$options->rangeSelector->selected = 30;
+	//$options->scrollbar->enabled = true;
 	$options->plotOptions->series->stacking = 'normal';
 	$options->series=$series;
 	

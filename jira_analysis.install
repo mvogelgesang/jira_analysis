@@ -9,12 +9,16 @@
   * Implements hook_install()
   */
  function jira_analysis_install() {
- 	variable_set('jira_analysis_default_url', '');
+ 	//get localization function for installation as t() may be unavailable
+	$t = get_t();
+	variable_set('jira_analysis_default_url', '');
 	variable_set('jira_analysis_default_user_name', '');
 	variable_set('jira_analysis_default_password', '');
 	variable_set('jira_analysis_default_status_list', array());
-	//get localization function for installation as t() may be unavailable
-	$t = get_t();
+	
+	//install schema
+	//drupal_install_schema('jira_analysis');
+	
 	
 	//Give user feedback
 	drupal_set_message($t('Jira Analysis variables created.'));
@@ -39,10 +43,10 @@
 	node_add_body_field($node_type, $t('Description'));
 	
 	//Create fields
-	/*$fields = array();
+	$fields = array();
 	
 	 //create options array
-	  $statusList = array(
+	  /*$statusList = array(
 	  	1 => t("Open"),
 		10023 => t("Pre-Slated"),
 		10000 => t("Slated"),
@@ -56,17 +60,18 @@
 		5 => t("Newly Released"),
 		6 => t("Closed"),
 		10020 => t("Backlog"),
-	  );
+	  );*/
 
 	
-
+	$statusList = array();
   
   
   
-  $fields['jira_analysis_statuses'] = array(
-    'type' => 'checkboxes',
+  $fields['jira_analysis_status'] = array(
+  	'field_name' => 'jira_analysis_status',
+    'type' => 'list_text',
     'options' => $statusList,
-  );*/
+  );
   
 	$fields['jira_analysis_fixversion'] = array(
 		'field_name' => 'jira_analysis_fixversion',
@@ -99,9 +104,17 @@
 		),
 	);
 	
+	$instances['jira_analysis_status'] = array(
+		'field_name' => 'jira_analysis_status',
+		'label' => $t('Jira Statuses'),
+		'description' => $t('status description'),
+		'widget' => array(
+			'type' => 'list_text',
+		),
+		'required' => FALSE,
+	);
 	
-	
-	
+
 	// 
 	foreach ($instances as $instance) {
 		$instance['entity_type'] = 'node';
@@ -110,6 +123,23 @@
 	}
  }
  
+ /**
+  * Implements hook_schema
+  */
+  function jira_analysis_schema() {
+  	$t = get_t();
+	  $schema['jira_analysis_status'] = array(
+	    'fields' => array(
+	      'status_id' => array('type' => 'varchar', 'length' => 20, 'not null' => TRUE),
+	      'status_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE),
+	      'status_description' => array('type' => 'varchar', 'length' => 150, 'not null' => TRUE),
+	      'created' => array('type' => 'int', 'not null' => TRUE),
+	    ),
+	  );
+	  drupal_set_message($t('Jira Analysis Status table created'));
+	  return $schema;
+  }
+  
  /**
   * Implements hook_uninstall()
   */
@@ -121,6 +151,9 @@ function jira_analysis_uninstall(){
 	variable_del('jira_analysis_default_user_name');
 	variable_del('jira_analysis_default_password');
 
+	//drop the jira_analysis_status table
+	db_drop_table('jira_analysis_status');
+	drupal_set_message($t('Jira Analysis Status Table Removed'));
 	
 	// Get all node ids with  Jira Analysis Content type
 	$sql_query = 'SELECT nid ';
