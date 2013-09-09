@@ -39,13 +39,7 @@
   */
   function jira_analysis_menu() {
   	$items = array();
-	/*
-	// Admin configuration group.
-	$items['admin/config/jira_analysis'] = array(
-	'title' => 'Jira Analysis',
-	'description' => 'Administer Jira Analysis',
-	'access arguments' => array('Administer Jira Analysis'),
-	);*/
+
 	
 	//Admin configuration - Settings.
 	$items['admin/config/jira_analysis/settings'] = array(
@@ -76,7 +70,6 @@
   * Implements hook_form().
   */
   function jira_analysis_admin_settings_form($node, &$form_state) {
-
   	$form = array();
 	
 	$form['overview'] = array(
@@ -84,11 +77,7 @@
 	'#prefix' => '<p>',
 	'#suffix' => '</p>',
 	);
-	/*
-	$form['jira_analysis_credential_fieldset'] = array(
-		'#title' => t('Jira Credentials'),
-		'#type' => 'fieldset',
-	);*/
+
 	
 	//$form['jira_analysis_credential_fieldset']
 	$form['jira_analysis_default_url'] = array(
@@ -149,7 +138,7 @@
   * Validates jira admin settings.
   */
   function jira_analysis_admin_settings_form_validate($form, &$form_state) {
-  	//dpm($form_state);
+  	dpm($form_state);
   	$cred = $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password'];
   	
 	$ch = curl_init($form_state['values']['jira_analysis_default_url'].'status');
@@ -170,9 +159,15 @@
 	else {
 		//dpm($jsonResp);
 		$schema = drupal_get_schema('jira_analysis_status');
-		dpm($jsonResp[0]->{'id'});
-		//if the schema is empty, insert data  
+        $info = field_info_field('jira_analysis_status');
+
+        // Get a reference to the values
+        $values = &$info['settings']['allowed_values'];
+
+
+
 			foreach($jsonResp as $status) {
+                //if the schema is empty, insert data
 				$nid = db_insert('jira_analysis_status') // Table name no longer needs {}
 				->fields(array(
 				  'status_id' => $status->{'id'},
@@ -180,14 +175,20 @@
 				  'status_description' => $status->{'description'},
 				  'created' => REQUEST_TIME,
 				))
-				->execute();	
+				->execute();
+
+                //insert values into the jira_analysis_status field allowed values list too
+                $values[$status->{'id'}] = $status->{'name'};
 			}
+        // Save the field
+        field_update_field($info);
 	}
 	curl_close($ch);
 
   }
- 
- /**
+
+
+/**
   * Create an options array for inserting Statuses
   */
  function create_status_list_options($jira_status_list_response) {
@@ -208,7 +209,8 @@
 	variable_set('jira_analysis_default_url', $form_state['values']['jira_analysis_default_url']);
 	variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
   	variable_set('jira_analysis_default_password', $form_state['values']['jira_analysis_default_password']);
-	//variable_set('jira_analysis_default_status_list', $form_state['values']['jira_analysis_default_status_list']);
+	variable_set('jira_analysis_default_statuses', $form_state['values']['jira_analysis_default_statuses']);
+
 	
 	//Nofity User
 	drupal_set_message(t('Jira Analysis settings saved'));
@@ -243,22 +245,31 @@ function theme_jira_analysis($variables) {
 	module_load_include('inc', 'highcharts');
 	dpm($variables);
 	//$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
-	$jql = urlencode('fixVersion="API v2"') . urlencode(' AND team in (ODS, "Acquia NMT")  ORDER BY createdDate asc');
-	$searchString = 'search?jql=' . $jql . '&fields=key,changelog,resolution,customfield_10245,fixVersions,status,-description,-customfield_10245';
+	$jql = urlencode($variables['node']->{'jira_analysis_jql'}['und'][0]['value']);
+	$searchString = 'search?jql=' . $jql . '&fields=key,resolution,fixVersions,status,-description,-customfield_10245,-customfield_10246';
 	
 	$jsonResp = getJiraResp($searchString);
 	$curlIssues = $jsonResp->{'issues'};
-	dpm($curlIssues);
+
+    //what statuses are we looking at
 	$status_list = build_status_list($variables);
-	$status_column_series_array = transform_to_status_column_series($curlIssues, $status_list);
-	dpm($status_column_series_array);
-	$xAxisCategories = $status_column_series_array[1];
-	$series = $status_column_series_array[0];
-	$options =custom_column_jira_options($xAxisCategories,$series);
+
+    //call functions to generate different chart types
+        //column and bar charts use the same function just different param
+        $status_column_series_array = transform_to_status_column_series($curlIssues, $status_list);
+
+        $xAxisCategories = $status_column_series_array[1];
+        $series = $status_column_series_array[0];
+        $options =custom_column_jira_options($xAxisCategories,$series);
+
+        //gantt
+
+        //queued v. working time
+
+    
 	$attributes = array('style' => array('height: 700px;'));
 	return highcharts_render($options, $attributes);
-	//dpm($series);
-	//return "nothing failed yet!";
+
 }
 
 /**
@@ -272,12 +283,12 @@ function theme_jira_analysis($variables) {
  */
 function build_status_list($variables) {
 	$ret_status_list = array();
-	$picked_statuses = $variables['node']->field_jira_status['und'];
-	
+	$picked_statuses = $variables['node']->jira_analysis_status['und'];
 	for ($i=0; $i<count($picked_statuses); $i++) {
-		$ret_status_list[$picked_statuses[$i]['value']] = $variables['node']->content['field_jira_status'][$i]['#markup'];
+		$ret_status_list[$picked_statuses[$i]['value']] = $variables['node']->content['jira_analysis_status'][$i]['#markup'];
 	}
-	return $ret_status_list; 
+    return $ret_status_list;
+
 }
 
 /**
@@ -324,113 +335,112 @@ return json_decode($jsonResp);
 
 function transform_to_status_column_series($curlIssues, $statusList) {
 	for($i=0; $i < count($curlIssues); $i++) {
-				$keyArray[] = $curlIssues[$i]->{'key'};
-				//get an extended object back representing the current ticket
-				$currentIssue = getIssueDetails($curlIssues[$i]->{'key'});
-				//get the cangelog history from that ticket
-				$history = $currentIssue->{'changelog'}->{'histories'};
-				
-				//set the fromDate which will be updated as we loop through statuses
-				$fromDate = $currentIssue->{'fields'}->{'created'};
-				$toStatus = '';
-				
-				//create an object that will hold select data for each issue
-				$tempIssue = new stdClass;
-				$tempIssue->key = $curlIssues[$i]->{'key'};
-				//create an array of the issues and their resolution status
-				$tempIssue->resolution = $curlIssues[$i]->{'fields'}->{'resolution'}->{'name'};
-				$tempIssue->resolutionDate = $curlIssues[$i]->{'fields'}->{'resolutionDate'};
-				//insert the date the ticket was created
-				$tempIssue->createdDate = $currentIssue->{'fields'}->{'created'};
-				
-				//create arrays for changeLog (detailed change view) and issuestatuses (summary view)
-				$tempIssue->issueChangeLog = array();
-				$tempIssue->issueStatuses = array();
-				
-				//print "<pre>"; print_r($history); print "</pre>"; print $i;
-				//print "<br /><br />Issue " . $curlIssues[$i]->{'key'} . ' was created on ' . date('m/d/y h:i a',strtotime($currentIssue->{'fields'}->{'created'})) . "<br />"; 
-				//loop the issue history and pull out status changes
-				for($j=0; $j < count($history); $j++) {
-					//print "<pre>"; print_r($gantt); print "</pre> <br />";	
-					//a history record will record changes to many fields in an array (items)
-					$historyItems = $history[$j]->{'items'};
-					//loop this array and check to see if the status was updated, if not then 
-					for($k=0; $k < count($historyItems); $k++) {
-						if($historyItems[$k]->{'field'} == 'status') {
-							//create an array for the changelogobject
-							$statusObj = new stdClass;
-							$statusObj->fromString = $historyItems[$k]->{'fromString'};
-							$statusObj->fromID = $historyItems[$k]->{'from'};
-							$statusObj->toString = $historyItems[$k]->{'toString'};
-							$statusObj->toID = $historyItems[$k]->{'to'};
-							$statusObj->author = $history[$j]->{'author'}->{'displayName'};
-							$statusObj->createdDate = $history[$j]->{'created'};
-							$tempIssue->{'issueChangeLog'}[] = $statusObj;	
-							//print $curlIssues[$i]->{'key'} . '  status of: ' . $historyItems[$k]->{'fromString'} . ' to a status of: ' . $historyItems[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
-							//create an object for gantt charts
-							
-							//create an array of statuses and duration
-							$statusDurationObj = new stdClass;
-							$statusDurationObj->duration = strtotime($history[$j]->{'created'}) - strtotime($fromDate);
-							$statusDurationObj->status = $historyItems[$k]->{'fromString'};
-							$tempIssue->{'issueStatuses'}[] = $statusDurationObj;
-							
-							$toStatus = $historyItems[$k]->{'toString'};
-							$fromDate = $history[$j]->{'created'};
-							//print "<br />  <pre> <h3>" . $curlIssues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
-						}
-					}
-					
-				}
-				//print "<strong>" . $i . '---' . $toStatus . "</strong> ---" . time() . "---" . strtotime($fromDate) . "<br />";
-				if ($toStatus != 'Closed' && $toStatus != '') {
-					$tempStatusObj = new stdClass; 
-					$tempStatusObj->duration = (time() - strtotime($fromDate));
-					$tempStatusObj->status = $toStatus;
-					$tempIssue->{'issueStatuses'}[] = $tempStatusObj;
-				}
-				$issueArray[] = $tempIssue;	
-			}
-			//print "<pre>"; print_r($tempIssue->{'issueStatuses'}); print "</pre>";
-			//$resolutionArray = getIssueResolutionArray($issueArray);
-			//print "<pre>"; print_r($resolutionArray); print "</pre>";
-			//create empty dataSeries 
-			
-			dpm($issueArray);
-			//create the array of series
-			$seriesArr = array();
-			foreach($statusList as $status) {
-				//print "<br />"; print_r($status[id]); print "<br />";
-				$tempObj = new stdClass;
-				$tempObj->{'name'} = "'" . $status . "'";
-				$tempObj->{'data'} = array();
-				
-				//loop through the issue array
-				for($i=0; $i < count($issueArray); $i++) {
-					//print "<br /> " . $i . "-- " . " <pre>"; print_r($issueArray[$i]); print "</pre> <br />";
-					//loop through the history of each issue if there are issues
-					if(count($issueArray[$i]->{'issueStatuses'}) > 0) {
-						$durationSum = 0;
-						for($j=0; $j < count($issueArray[$i]->{'issueStatuses'}); $j++) {
-							if($status == $issueArray[$i]->{'issueStatuses'}[$j]->{'status'}) {
-								$durationSum += $issueArray[$i]->{'issueStatuses'}[$j]->{'duration'};
-							}
-						}
-						if ($durationSum > 0) {
-							$tempObj->{'data'}[] = $durationSum/60/60/24;
-						}
-						else {
-							$tempObj->{'data'}[] = 0;
-						}
-					}
-					else {
-						$tempObj->{'data'}[] = 0;
-					}
-					//print "<br /> <h3> " . $i . "-- " . $issueArray[$i]->{'issueKey'} . "</h3> <pre>"; print_r($tempObj); print "</pre> <br />";	
-					
-				}
-				$seriesArr[] = $tempObj;
-			} 
+        $keyArray[] = $curlIssues[$i]->{'key'};
+        //get an extended object back representing the current ticket
+        $currentIssue = getIssueDetails($curlIssues[$i]->{'key'});
+        //get the cangelog history from that ticket
+        $history = $currentIssue->{'changelog'}->{'histories'};
+
+        //set the fromDate which will be updated as we loop through statuses
+        $fromDate = $currentIssue->{'fields'}->{'created'};
+        $toStatus = '';
+
+        //create an object that will hold select data for each issue
+        $tempIssue = new stdClass;
+        $tempIssue->key = $curlIssues[$i]->{'key'};
+        //create an array of the issues and their resolution status
+        $tempIssue->resolution = $curlIssues[$i]->{'fields'}->{'resolution'}->{'name'};
+        $tempIssue->resolutionDate = $curlIssues[$i]->{'fields'}->{'resolutionDate'};
+        //insert the date the ticket was created
+        $tempIssue->createdDate = $currentIssue->{'fields'}->{'created'};
+
+        //create arrays for changeLog (detailed change view) and issuestatuses (summary view)
+        $tempIssue->issueChangeLog = array();
+        $tempIssue->issueStatuses = array();
+
+        //print "<pre>"; print_r($history); print "</pre>"; print $i;
+        //print "<br /><br />Issue " . $curlIssues[$i]->{'key'} . ' was created on ' . date('m/d/y h:i a',strtotime($currentIssue->{'fields'}->{'created'})) . "<br />";
+        //loop the issue history and pull out status changes
+        for($j=0; $j < count($history); $j++) {
+            //print "<pre>"; print_r($gantt); print "</pre> <br />";
+            //a history record will record changes to many fields in an array (items)
+            $historyItems = $history[$j]->{'items'};
+            //loop this array and check to see if the status was updated, if not then
+            for($k=0; $k < count($historyItems); $k++) {
+                if($historyItems[$k]->{'field'} == 'status') {
+                    //create an array for the changelogobject
+                    $statusObj = new stdClass;
+                    $statusObj->fromString = $historyItems[$k]->{'fromString'};
+                    $statusObj->fromID = $historyItems[$k]->{'from'};
+                    $statusObj->toString = $historyItems[$k]->{'toString'};
+                    $statusObj->toID = $historyItems[$k]->{'to'};
+                    $statusObj->author = $history[$j]->{'author'}->{'displayName'};
+                    $statusObj->createdDate = $history[$j]->{'created'};
+                    $tempIssue->{'issueChangeLog'}[] = $statusObj;
+                    //print $curlIssues[$i]->{'key'} . '  status of: ' . $historyItems[$k]->{'fromString'} . ' to a status of: ' . $historyItems[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
+                    //create an object for gantt charts
+
+                    //create an array of statuses and duration
+                    $statusDurationObj = new stdClass;
+                    $statusDurationObj->duration = strtotime($history[$j]->{'created'}) - strtotime($fromDate);
+                    $statusDurationObj->status = $historyItems[$k]->{'fromString'};
+                    $tempIssue->{'issueStatuses'}[] = $statusDurationObj;
+
+                    $toStatus = $historyItems[$k]->{'toString'};
+                    $fromDate = $history[$j]->{'created'};
+                    //print "<br />  <pre> <h3>" . $curlIssues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
+                }
+            }
+
+        }
+        //print "<strong>" . $i . '---' . $toStatus . "</strong> ---" . time() . "---" . strtotime($fromDate) . "<br />";
+        if ($toStatus != 'Closed' && $toStatus != '') {
+            $tempStatusObj = new stdClass;
+            $tempStatusObj->duration = (time() - strtotime($fromDate));
+            $tempStatusObj->status = $toStatus;
+            $tempIssue->{'issueStatuses'}[] = $tempStatusObj;
+        }
+        $issueArray[] = $tempIssue;
+    }
+    //print "<pre>"; print_r($tempIssue->{'issueStatuses'}); print "</pre>";
+    //$resolutionArray = getIssueResolutionArray($issueArray);
+    //print "<pre>"; print_r($resolutionArray); print "</pre>";
+    //create empty dataSeries
+
+    //create the array of series
+    $seriesArr = array();
+    foreach($statusList as $status) {
+        //print "<br />"; print_r($status[id]); print "<br />";
+        $tempObj = new stdClass;
+        $tempObj->{'name'} = "'" . $status . "'";
+        $tempObj->{'data'} = array();
+
+        //loop through the issue array
+        for($i=0; $i < count($issueArray); $i++) {
+            //print "<br /> " . $i . "-- " . " <pre>"; print_r($issueArray[$i]); print "</pre> <br />";
+            //loop through the history of each issue if there are issues
+            if(count($issueArray[$i]->{'issueStatuses'}) > 0) {
+                $durationSum = 0;
+                for($j=0; $j < count($issueArray[$i]->{'issueStatuses'}); $j++) {
+                    if($status == $issueArray[$i]->{'issueStatuses'}[$j]->{'status'}) {
+                        $durationSum += $issueArray[$i]->{'issueStatuses'}[$j]->{'duration'};
+                    }
+                }
+                if ($durationSum > 0) {
+                    $tempObj->{'data'}[] = $durationSum/60/60/24;
+                }
+                else {
+                    $tempObj->{'data'}[] = 0;
+                }
+            }
+            else {
+                $tempObj->{'data'}[] = 0;
+            }
+            //print "<br /> <h3> " . $i . "-- " . $issueArray[$i]->{'issueKey'} . "</h3> <pre>"; print_r($tempObj); print "</pre> <br />";
+
+        }
+        $seriesArr[] = $tempObj;
+    }
 
 return array($seriesArr,$keyArray);
 }

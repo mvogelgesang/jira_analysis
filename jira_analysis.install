@@ -14,7 +14,7 @@
 	variable_set('jira_analysis_default_url', '');
 	variable_set('jira_analysis_default_user_name', '');
 	variable_set('jira_analysis_default_password', '');
-	variable_set('jira_analysis_default_status_list', array());
+	variable_set('jira_analysis_default_statuses', array());
 	
 	//install schema
 	//drupal_install_schema('jira_analysis');
@@ -44,42 +44,36 @@
 	
 	//Create fields
 	$fields = array();
-	
-	 //create options array
-	  /*$statusList = array(
-	  	1 => t("Open"),
-		10023 => t("Pre-Slated"),
-		10000 => t("Slated"),
-		10001 => t("Development in Progress"),
-		10029 => t("Stakeholder Review in Progress"),
-		10016 => t("Queued for Code Review"),
-		10017 => t("Code Review in Progress"),
-		10002 => t("Queued for Staging QA"),
-		10003 => t("Staged for QA"),
-		10027 => t("Ready for Release"),
-		5 => t("Newly Released"),
-		6 => t("Closed"),
-		10020 => t("Backlog"),
-	  );*/
 
-	
 	$statusList = array();
-  
-  
   
   $fields['jira_analysis_status'] = array(
   	'field_name' => 'jira_analysis_status',
     'type' => 'list_text',
+    'cardinality' => FIELD_CARDINALITY_UNLIMITED,
     'options' => $statusList,
   );
   
-	$fields['jira_analysis_fixversion'] = array(
-		'field_name' => 'jira_analysis_fixversion',
+	$fields['jira_analysis_jql'] = array(
+		'field_name' => 'jira_analysis_jql',
 		'type' => 'text',
 		'settings' => array(
-			'max_length' => 75,
+			'max_length' => 350,
 		),
 	);
+
+     $chartList = array(
+         'gantt' => t('Gantt'),
+         'column' => t('Column'),
+         'bar' => t('Bar'),
+         'queuedTime' => t('Queued Time'),
+     );
+
+     $fields['jira_analysis_chart_type'] = array(
+         'field_name' => 'jira_analysis_chart_type',
+         'type' => 'list_text',
+         'options' => $chartList,
+     );
 	
 	
 	
@@ -92,15 +86,15 @@
 	$instances = array();
 	
 	$instances['jira_analysis_fixversion'] = array(
-		'field_name' => 'jira_analysis_fixversion',
-		'label' => $t('Fix Version to use'),
-		'description' => $t('Fix version(s) that ticket must be in'),
+		'field_name' => 'jira_analysis_jql',
+		'label' => $t('JQL'),
+		'description' => $t('A JQL query from Jira, copy as is'),
 		'widget' => array(
-			'type' => 'tableselect',
+			'type' => 'text',
 		),
 		'required' => FALSE,
 		'settings' => array(
-			'text_processing' => 0,
+			'max_length' => 350,
 		),
 	);
 	
@@ -109,11 +103,20 @@
 		'label' => $t('Jira Statuses'),
 		'description' => $t('status description'),
 		'widget' => array(
-			'type' => 'list_text',
+			'type' => 'options_buttons',
 		),
 		'required' => FALSE,
 	);
-	
+
+     $instances['jira_analysis_chart_type'] = array(
+         'field_name' => 'jira_analysis_chart_type',
+         'label' => $t('Chart Type'),
+         'description' => $t('Chart type to display'),
+         'widget' => array(
+             'type' => 'options_select'
+         ),
+         'required' => TRUE,
+     );
 
 	// 
 	foreach ($instances as $instance) {
@@ -150,6 +153,7 @@ function jira_analysis_uninstall(){
 	variable_del('jira_analysis_default_url');
 	variable_del('jira_analysis_default_user_name');
 	variable_del('jira_analysis_default_password');
+
 
 	//drop the jira_analysis_status table
 	db_drop_table('jira_analysis_status');
