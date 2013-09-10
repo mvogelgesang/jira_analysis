@@ -2,7 +2,7 @@ jira_analysis
 =============
 
 seriesArr - an array made up of selected issue statuses with a nested array for each issue
-''''php
+````php
 Array
 (
     [0] => stdClass Object
@@ -50,4 +50,4 @@ Array
                 )
         )
 )
-''''
+````
