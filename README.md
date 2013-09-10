@@ -51,3 +51,103 @@ Array
         )
 )
 ````
+
+ganttArr - an array made up of objects that correspond to statuses. The objects contain arrays of objects that correspond to particular issues (denoted by X) and their in/out times.
+Color can be specified for each status so that it remains constant across various reports.
+
+````php
+Array (
+    [0] => stdClass Object
+        (
+            [name] => 'Slated'
+            [data] => Array
+                (
+                    [0] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377294121000
+                            [low] => 1377022139000
+                        )
+
+                    [1] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377294139000
+                            [low] => 1377294124000
+                        )
+
+                    [2] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377294420000
+                            [low] => 1377294360000
+                        )
+
+                    [3] => stdClass Object
+                        (
+                            [x] => 1
+                            [high] => 1377611918000
+                            [low] => 1377526605000
+                        )
+
+                    [4] => stdClass Object
+                        (
+                            [x] => 2
+                            [high] => 1377624758000
+                            [low] => 1377619026000
+                        )
+
+
+
+                )
+
+            [color] => '#2f7ed8'
+        )
+
+    [1] => stdClass Object
+        (
+            [name] => 'Development in Progress'
+            [data] => Array
+                (
+                    [0] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377294124000
+                            [low] => 1377294121000
+                        )
+
+                    [1] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377294360000
+                            [low] => 1377294139000
+                        )
+
+                    [2] => stdClass Object
+                        (
+                            [x] => 0
+                            [high] => 1377639030000
+                            [low] => 1377294420000
+                        )
+
+                    [3] => stdClass Object
+                        (
+                            [x] => 2
+                            [high] => 1378218237000
+                            [low] => 1377624758000
+                        )
+
+                    [4] => stdClass Object
+                        (
+                            [x] => 5
+                            [high] => 1377875755000
+                            [low] => 1377623242000
+                        )
+
+                )
+
+            [color] => '#0d233a'
+        )
+
+)
+````
