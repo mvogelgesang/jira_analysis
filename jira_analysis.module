@@ -1,0 +1,101 @@
+<?php
+/**
+ * @file
+ * Code for the Jira Analysis feature.
+ */
+
+include_once 'jira_analysis.features.inc';
+
+/**
+ * Implements hook_help
+ *
+ * Displays help and module information
+ *
+ */
+function jira_analysis_help($path, $arg) {
+    switch ($path) {
+        case "admin/help#jira_analysis":
+        {
+            $returnVal = '<h3>' . t('About') . '</h3>';
+            $returnVal .= '<p>' . t('Displays data about Jira tickets') . '</p>';
+            return $returnVal;
+            break;
+        }
+    }
+}
+
+
+/**
+ * Implements hook_permission().
+ */
+function jira_analysis_permission() {
+    return array(
+        'administer Jira Analysis' => array(
+            'title' => t('Administer Jira Analysis'),
+            'description' => t('Perform administrative tasks on Jira Analysis functionality'),
+        ),
+    );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function jira_analysis_menu() {
+    $items = array();
+
+    //Admin configuration - Settings.
+    $items['admin/config/jira_analysis/settings'] = array(
+        'title' => 'Jira Analysis Settings',
+        'description' => 'Manage Jira Analysis settings and configuration',
+        'access arguments' => array('Administer Jira Analysis'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('jira_analysis_admin_settings_form'),
+        'type' => MENU_NORMAL_ITEM,
+        'file' => 'jira_analysis.admin.inc'
+    );
+    $items['admin/config/jira_analysis/settings/tab1'] = array(
+        'title' => 'Settings',
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+        'file' => 'jira_analysis.admin.inc'
+    );
+
+    //Admin configuration - tab2
+    $items['admin/config/jira_analysis/settings/cflow'] = array(
+        'title' => 'Cumulative Flow',
+        'type' => MENU_LOCAL_TASK,
+        'page callback' => 'jira_analysis_cflow_page',
+        'access arguments' => array('Administer Jira Analysis'),
+        'weight' => 5,
+        'file' => 'jira_analysis.admin.inc'
+    );
+    $items['admin/config/jira_analysis/settings/cflow/add'] = array(
+        'title' => 'Add Cumulative Flow Report',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('jira_analysis_cflow_edit', 'add'),
+        'access arguments' => array('Administer Jira Analysis'),
+        'type' => MENU_LOCAL_ACTION,
+        'weight' => 5,
+        'file' => 'jira_analysis.admin.inc'
+    );
+
+    //Admin configuration - tab3
+    $items['admin/config/jira_analysis/settings/cycletime'] = array(
+        'title' => 'Cycle Time',
+        'type' => MENU_LOCAL_TASK,
+        'page callback' => 'jira_analysis_cycletime_page',
+        'access arguments' => array('Administer Jira Analysis'),
+        'weight' => 5,
+        'file' => 'jira_analysis.admin.inc'
+    );
+    $items['admin/config/jira_analysis/settings/cycletime/add'] = array(
+        'title' => 'Add Cycletime Report',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('jira_analysis_cycletime_edit', 'add'),
+        'access arguments' => array('Administer Jira Analysis'),
+        'type' => MENU_LOCAL_ACTION,
+        'weight' => 5,
+        'file' => 'jira_analysis.admin.inc'
+    );
+
+    return $items;
+}

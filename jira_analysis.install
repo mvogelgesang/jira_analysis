@@ -1,0 +1,88 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: markvogelgesang
+ * Date: 11/14/13
+ * Time: 12:59 PM
+ */
+
+
+
+/**
+ * Implements hook_schema
+ */
+function jira_analysis_schema() {
+    $schema['jira_analysis_status'] = array(
+        'fields' => array(
+            'status_id' => array('type' => 'varchar', 'length' => 20, 'not null' => TRUE),
+            'status_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE),
+            'status_description' => array('type' => 'varchar', 'length' => 150, 'not null' => TRUE),
+            'created' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+        ),
+    );
+
+
+    $schema['jira_ref_cumulative_flow'] = array(
+        'fields' => array(
+            'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
+            'cf_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
+            'cf_type_description' => array('type' => 'varchar', 'length' => '500'),
+            'cf_start_date' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'created' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'updated' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+        ),
+        'primary key' => array('cf_type_id'),
+    );
+    $schema['jira_cumulative_flow'] = array(
+        'fields' => array(
+            'cf_id' => array('type' => 'serial', 'not null' => TRUE),
+            'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
+            'cf_daily_thruput' => array('type' => 'int', 'default' => 0),
+            'cf_daily_wip' => array('type' => 'int', 'default' => 0),
+            'cf_date' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'created' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+        ),
+        'primary key' => array('cf_id'),
+    );
+
+    $schema['jira_ref_cycle_time'] = array(
+        'fields' => array(
+            'ct_type_id' => array('type' => 'serial', 'not null' => TRUE),
+            'ct_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
+            'ct_type_description' => array('type' => 'varchar', 'length' => '500'),
+            'ct_start_date' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'created' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'updated' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+        ),
+        'primary key' => array('ct_type_id'),
+    );
+
+    $schema['jira_cycle_time'] = array(
+        'fields' => array(
+            'ct_id' => array('type' => 'serial', 'not null' => TRUE),
+            'ct_type_id' => array('type' => 'int', 'not null' => TRUE),
+            'ct_date' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+            'ct_avg' => array('type' => 'float', 'not null' => TRUE),
+            'ct_std_dev' => array('type' => 'float', 'not null' => TRUE),
+            'ct_median' => array('type' => 'float', 'not null' => TRUE),
+            'created' => array('mysql_type' => 'DATETIME', 'not null' => TRUE),
+        ),
+        'primary key' => array('ct_id'),
+    );
+
+    return $schema;
+}
+
+
+/**
+ * Implements hook_uninstall()
+ */
+function jira_analysis_uninstall() {
+
+    //Delete variables
+    variable_del('jira_analysis_default_url');
+    variable_del('jira_analysis_default_user_name');
+    variable_del('jira_analysis_default_password');
+    variable_del('jira_analysis_default_status');
+
+}
