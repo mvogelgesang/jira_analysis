@@ -1,4 +1,4 @@
-<?php 
+<?php
 /**
  * @file
  * A module that displays data about Jira tickets
@@ -6,20 +6,21 @@
 
 /**
  * Implements hook_help().
- * 
+ *
  * Displays help and module information
- * 
+ *
  */
 function jira_analysis_help($path, $arg) {
   switch ($path) {
-    case "admin/help#jira_analysis": {
+    case "admin/help#jira_analysis":
+    {
       $return_val = '<h3>' . t('About') . '</h3>';
       $return_val .= '<p>' . t('Displays data about Jira tickets') . '</p>';
       return $return_val;
       break;
     }
   }
-} 
+}
 
 
 /**
@@ -82,7 +83,7 @@ function jira_analysis_menu() {
     'page arguments' => array('jira_analysis_report_form'),
     'type' => MENU_NORMAL_ITEM,
   );
-	return $items;
+  return $items;
 }
 
 /**
@@ -132,7 +133,7 @@ function jira_analysis_admin_settings_form($node, &$form_state) {
     '#title' => t('Password'),
     '#description' => t(''),
     '#type' => 'password',
-    '#default_value' => variable_get('jira_analysis_default_password',''),
+    '#default_value' => variable_get('jira_analysis_default_password', ''),
     '#required' => TRUE,
   );
 
@@ -159,14 +160,13 @@ function jira_analysis_admin_settings_form($node, &$form_state) {
 }
 
 
-
 /**
  * Validates jira admin settings.
  */
 function jira_analysis_admin_settings_form_validate($form, &$form_state) {
-  $cred = $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password'];
+  $cred = $form_state['values']['jira_analysis_default_user_name'] . ':' . $form_state['values']['jira_analysis_default_password'];
 
-  $ch = curl_init($form_state['values']['jira_analysis_default_url'].'status');
+  $ch = curl_init($form_state['values']['jira_analysis_default_url'] . 'status');
   //curl_setopt($ch, CURLOPT_USERPWD, $form_state['values']['jira_analysis_default_user_name'].':'.$form_state['values']['jira_analysis_default_password']);
   curl_setopt($ch, CURLOPT_USERPWD, $cred);
   curl_setopt($ch, CURLOPT_POST, FALSE);
@@ -178,30 +178,29 @@ function jira_analysis_admin_settings_form_validate($form, &$form_state) {
   $json_resp = json_decode($resp_split[1]);
   var_dump($json_resp);
 
-  $resp_code = curl_getinfo($ch,CURLINFO_HTTP_CODE);
+  $resp_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
   if ($resp_code != 200) {
-    form_set_error('jira_analysis_default_password', t('Validation failed, please check your URL and credentials and re-submit ('.$respCode.')'));
-  }
-  else {
+    form_set_error('jira_analysis_default_password', t('Validation failed, please check your URL and credentials and re-submit (' . $respCode . ')'));
+  } else {
     $schema = drupal_get_schema('jira_analysis_status');
     $info = field_info_field('jira_analysis_status');
 
     // Get a reference to the values
-    $values = &$info['settings']['allowed_values'];
+    $values = & $info['settings']['allowed_values'];
 
-    foreach($json_resp as $status) {
-	    //if the schema is empty, insert data
+    foreach ($json_resp as $status) {
+      //if the schema is empty, insert data
       $nid = db_insert('jira_analysis_status') // Table name no longer needs {}
-      ->fields(array(
-      'status_id' => $status->{'id'},
-      'status_name' => $status->{'name'},
-      'status_description' => $status->{'description'},
-      'created' => REQUEST_TIME,
-      ))
-      ->execute();
+        ->fields(array(
+          'status_id' => $status->{'id'},
+          'status_name' => $status->{'name'},
+          'status_description' => $status->{'description'},
+          'created' => REQUEST_TIME,
+        ))
+        ->execute();
 
-	    //insert values into the jira_analysis_status field allowed values list too
-	    $values[$status->{'id'}] = $status->{'name'};
+      //insert values into the jira_analysis_status field allowed values list too
+      $values[$status->{'id'}] = $status->{'name'};
     }
     // Save the field
     field_update_field($info);
@@ -214,8 +213,8 @@ function jira_analysis_admin_settings_form_validate($form, &$form_state) {
  * Create an options array for inserting Statuses
  */
 function create_status_list_options($jira_status_list_response) {
-  $list_len = count($jira_status_list_response);	
-  for($i=0; $i<$list_len; $i++) {
+  $list_len = count($jira_status_list_response);
+  for ($i = 0; $i < $list_len; $i++) {
 
   }
 }
@@ -236,13 +235,13 @@ function jira_analysis_admin_settings_form_submit($form, &$form_state) {
 
   //Nofity User
   drupal_set_message(t('Jira Analysis settings saved'));
-} 
+}
 
 /**
  * Implements hook_node_view().
  */
 function jira_analysis_node_view($node, $view_mode, $langcode) {
-  if ($node->type == 'jira_analysis' && $view_mode == 'full'){ 
+  if ($node->type == 'jira_analysis' && $view_mode == 'full') {
     $node->content['jira_analysis'] = array(
       '#markup' => theme('jira_analysis', array(
         'node' => $node,
@@ -250,7 +249,7 @@ function jira_analysis_node_view($node, $view_mode, $langcode) {
       '#weight' => 100,
     );
   }
-} 
+}
 
 /**
  * Implements hook_theme().
@@ -258,10 +257,10 @@ function jira_analysis_node_view($node, $view_mode, $langcode) {
 function jira_analysis_theme($existing, $type, $theme, $path) {
   return array(
     'jira_analysis' => array(
-    'variables' => array('node' => NULL),
+      'variables' => array('node' => NULL),
     ),
   );
-} 
+}
 
 /**
  * Jira Analysis theme function
@@ -281,27 +280,27 @@ function theme_jira_analysis($variables) {
   $status_list = build_status_list($variables);
 
   //call functions to generate different chart types
-  switch($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']) {
-  case 'column':
-    $status_column_series_array = transform_to_status_column_series($curl_issues, $status_list);
-    $xaxis_categories = $status_column_series_array[1];
-    $series = $status_column_series_array[0];
-    $options =custom_column_jira_options($xaxis_categories,$series);
-    break;
-  case 'gantt':
-    drupal_add_js('sites/all/libraries/highcharts/js/highcharts-more.js');
-    $gantt_series_array = transform_to_gantt_series($curl_issues, $status_list);
+  switch ($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']) {
+    case 'column':
+      $status_column_series_array = transform_to_status_column_series($curl_issues, $status_list);
+      $xaxis_categories = $status_column_series_array[1];
+      $series = $status_column_series_array[0];
+      $options = custom_column_jira_options($xaxis_categories, $series);
+      break;
+    case 'gantt':
+      drupal_add_js('sites/all/libraries/highcharts/js/highcharts-more.js');
+      $gantt_series_array = transform_to_gantt_series($curl_issues, $status_list);
 
-    $xaxis_categories = $gantt_series_array[1];
-    $series = $gantt_series_array[0];
-    $options = custom_columnrange_jira_options($xaxis_categories,$series);
-    break;
+      $xaxis_categories = $gantt_series_array[1];
+      $series = $gantt_series_array[0];
+      $options = custom_columnrange_jira_options($xaxis_categories, $series);
+      break;
 
-  case 'bar':
-    break;
+    case 'bar':
+      break;
 
-  case 'queuedTime':
-    break;
+    case 'queuedTime':
+      break;
   }
   $attributes = array('style' => array('height: 700px;'));
   return highcharts_render($options, $attributes);
@@ -309,18 +308,18 @@ function theme_jira_analysis($variables) {
 
 /**
  * Creates a list of statuses for use by functions that transform json into data series
- * 
- * @param array $variables 
- * 	The variables array from the current page
- * 
+ *
+ * @param array $variables
+ *  The variables array from the current page
+ *
  * @return array $ret_status_list
- * 	An associative array of keys and values for each status
+ *  An associative array of keys and values for each status
  */
 function build_status_list($variables) {
   $ret_status_list = array();
   $picked_statuses = $variables['node']->jira_analysis_status['und'];
 
-  for ($i=0; $i<count($picked_statuses); $i++) {
+  for ($i = 0; $i < count($picked_statuses); $i++) {
     $ret_status_list[$picked_statuses[$i]['value']] = $variables['node']->content['jira_analysis_status'][$i]['#markup'];
   }
   return $ret_status_list;
@@ -328,12 +327,12 @@ function build_status_list($variables) {
 
 /**
  * Makes a condensed call to Jira requesting specific information (created date, status, changelog) about an issueKey
- * 
+ *
  * @param string $issueKey
- * 	A Jira issue key eg JIRA-1234
- * 
- * @return object 
- * 	A Jira object containing ID, Key, fields (created date, status, changelog)
+ *  A Jira issue key eg JIRA-1234
+ *
+ * @return object
+ *  A Jira object containing ID, Key, fields (created date, status, changelog)
  */
 function getIssueDetails($issue_key) {
   $url = 'issue/' . $issue_key . '?fields=created,status&expand=changelog';
@@ -342,17 +341,17 @@ function getIssueDetails($issue_key) {
 
 /**
  * Makes an API call to Jira given the defaults set up in Admin
- * 
- * @param string $query_string 
- * 	A resource (status, issue, etc) followed by a query string (if applicable)
- * 
+ *
+ * @param string $query_string
+ *  A resource (status, issue, etc) followed by a query string (if applicable)
+ *
  * @return object
- * 	A Jira object
+ *  A Jira object
  */
 function getJiraResp($query_string) {
-  $cred = variable_get('jira_analysis_default_user_name').':'.variable_get('jira_analysis_default_password');
+  $cred = variable_get('jira_analysis_default_user_name') . ':' . variable_get('jira_analysis_default_password');
   $durl = variable_get('jira_analysis_default_url');
-  $ch = curl_init($durl.$query_string);
+  $ch = curl_init($durl . $query_string);
   curl_setopt($ch, CURLOPT_USERPWD, $cred);
   curl_setopt($ch, CURLOPT_POST, FALSE);
   curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
@@ -367,10 +366,10 @@ function getJiraResp($query_string) {
   return json_decode($json_resp);
 }
 
-function transform_to_gantt_series($curl_issues,$status_list) {
+function transform_to_gantt_series($curl_issues, $status_list) {
   $gantt = createArrayOfStatusObj($status_list);
 
-  for($i=0; $i < count($curl_issues); $i++) {
+  for ($i = 0; $i < count($curl_issues); $i++) {
     $key_array[] = $curl_issues[$i]->{'key'};
     //get an extended object back representing the current ticket
     $current_issue = getIssueDetails($curl_issues[$i]->{'key'});
@@ -382,43 +381,43 @@ function transform_to_gantt_series($curl_issues,$status_list) {
     $to_status = '';
 
     //loop the issue history and pull out status changes
-    for($j=0; $j < count($history); $j++) {
+    for ($j = 0; $j < count($history); $j++) {
 
       //a history record will record changes to many fields in an array (items)
       $history_items = $history[$j]->{'items'};
       //loop this array and check to see if the status was updated, if not then
-      for($k=0; $k < count($history_items); $k++) {
-	      if($history_items[$k]->{'field'} == 'status') {
-			    //create an object for gantt charts
-			    $gantt_obj = new stdClass;
-			    $gantt_obj->x = $i;
-			    $gantt_obj->high = strtotime($history[$j]->{'created'})*1000;
-			    $gantt_obj->low = strtotime($from_date)*1000;
-			    //$gantt_obj->color = getStatusColor($history_items[$k]->{'fromString'});
-			    $arr_status_num =  getArrayStatusNum($gantt, $history_items[$k]->{'fromString'});
+      for ($k = 0; $k < count($history_items); $k++) {
+        if ($history_items[$k]->{'field'} == 'status') {
+          //create an object for gantt charts
+          $gantt_obj = new stdClass;
+          $gantt_obj->x = $i;
+          $gantt_obj->high = strtotime($history[$j]->{'created'}) * 1000;
+          $gantt_obj->low = strtotime($from_date) * 1000;
+          //$gantt_obj->color = getStatusColor($history_items[$k]->{'fromString'});
+          $arr_status_num = getArrayStatusNum($gantt, $history_items[$k]->{'fromString'});
 
-			    //print $arr_status_num . ' -- ' . $history_items[$k]->{'fromString'} . '<br />';
-			    if ($arr_status_num >= 0) {
-					  $gantt[$arr_status_num]->{'data'}[] = $gantt_obj;
-			    }
+          //print $arr_status_num . ' -- ' . $history_items[$k]->{'fromString'} . '<br />';
+          if ($arr_status_num >= 0) {
+            $gantt[$arr_status_num]->{'data'}[] = $gantt_obj;
+          }
 
-			    $to_status = $history_items[$k]->{'toString'};
-			    $from_date = $history[$j]->{'created'};
-			    //print "<br />  <pre> <h3>" . $curl_issues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
-	      }
+          $to_status = $history_items[$k]->{'toString'};
+          $from_date = $history[$j]->{'created'};
+          //print "<br />  <pre> <h3>" . $curl_issues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
+        }
       }
     }
     //print "<strong>" . $i . '---' . $to_status . "</strong> ---" . time() . "---" . strtotime($from_date) . "<br />";
     if ($to_status != 'Closed' && $to_status != '') {
       $gantt_obj = new stdClass;
       $gantt_obj->x = $i;
-      $gantt_obj->high = time()*1000;
-      $gantt_obj->low = strtotime($from_date)*1000;
+      $gantt_obj->high = time() * 1000;
+      $gantt_obj->low = strtotime($from_date) * 1000;
       //$gantt_obj->color = getStatusColor($to_status);
       //print $to_status . ' -- ' . $gantt_obj->{'color'} . ' --- ' . getArrayStatusNum($gantt, $to_status);
-      $arr_status_num =  getArrayStatusNum($gantt, $to_status);
+      $arr_status_num = getArrayStatusNum($gantt, $to_status);
       if ($arr_status_num >= 0) {
-	      $gantt[$arr_status_num]->{'data'}[] = $gantt_obj;
+        $gantt[$arr_status_num]->{'data'}[] = $gantt_obj;
       }
     }
   }
@@ -431,7 +430,7 @@ function transform_to_gantt_series($curl_issues,$status_list) {
 function createArrayOfStatusObj($status_list) {
   $status_array = array();
 
-  foreach($status_list as $status) {
+  foreach ($status_list as $status) {
     $temp = new stdClass;
     $temp->{'name'} = "'" . $status . "'";
     $temp->{'data'} = array();
@@ -449,7 +448,7 @@ function createArrayOfStatusObj($status_list) {
  * @return array
  */
 function transform_to_status_column_series($curl_issues, $status_list) {
-  for($i=0; $i < count($curl_issues); $i++) {
+  for ($i = 0; $i < count($curl_issues); $i++) {
     $key_array[] = $curl_issues[$i]->{'key'};
     //get an extended object back representing the current ticket
     $current_issue = getIssueDetails($curl_issues[$i]->{'key'});
@@ -474,35 +473,35 @@ function transform_to_status_column_series($curl_issues, $status_list) {
     $temp_issue->issue_statuses = array();
 
     //loop the issue history and pull out status changes
-    for($j=0; $j < count($history); $j++) {
+    for ($j = 0; $j < count($history); $j++) {
       //print "<pre>"; print_r($gantt); print "</pre> <br />";
       //a history record will record changes to many fields in an array (items)
       $history_items = $history[$j]->{'items'};
       //loop this array and check to see if the status was updated, if not then
-      for($k=0; $k < count($history_items); $k++) {
-	      if($history_items[$k]->{'field'} == 'status') {
-			    //create an array for the changelogobject
-			    $status_obj = new stdClass;
-			    $status_obj->from_string = $history_items[$k]->{'fromString'};
-			    $status_obj->from_id = $history_items[$k]->{'from'};
-			    $status_obj->to_string = $history_items[$k]->{'toString'};
-			    $status_obj->to_id = $history_items[$k]->{'to'};
-			    $status_obj->author = $history[$j]->{'author'}->{'displayName'};
-			    $status_obj->created_date = $history[$j]->{'created'};
-			    $temp_issue->{'issue_change_log'}[] = $status_obj;
-			    //print $curl_issues[$i]->{'key'} . '  status of: ' . $history_items[$k]->{'fromString'} . ' to a status of: ' . $history_items[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
-			    //create an object for gantt charts
+      for ($k = 0; $k < count($history_items); $k++) {
+        if ($history_items[$k]->{'field'} == 'status') {
+          //create an array for the changelogobject
+          $status_obj = new stdClass;
+          $status_obj->from_string = $history_items[$k]->{'fromString'};
+          $status_obj->from_id = $history_items[$k]->{'from'};
+          $status_obj->to_string = $history_items[$k]->{'toString'};
+          $status_obj->to_id = $history_items[$k]->{'to'};
+          $status_obj->author = $history[$j]->{'author'}->{'displayName'};
+          $status_obj->created_date = $history[$j]->{'created'};
+          $temp_issue->{'issue_change_log'}[] = $status_obj;
+          //print $curl_issues[$i]->{'key'} . '  status of: ' . $history_items[$k]->{'fromString'} . ' to a status of: ' . $history_items[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
+          //create an object for gantt charts
 
-			    //create an array of statuses and duration
-			    $status_duration_obj = new stdClass;
-			    $status_duration_obj->duration = strtotime($history[$j]->{'created'}) - strtotime($from_date);
-			    $status_duration_obj->status = $history_items[$k]->{'fromString'};
-			    $temp_issue->{'issue_statuses'}[] = $status_duration_obj;
+          //create an array of statuses and duration
+          $status_duration_obj = new stdClass;
+          $status_duration_obj->duration = strtotime($history[$j]->{'created'}) - strtotime($from_date);
+          $status_duration_obj->status = $history_items[$k]->{'fromString'};
+          $temp_issue->{'issue_statuses'}[] = $status_duration_obj;
 
-			    $to_status = $history_items[$k]->{'toString'};
-			    $from_date = $history[$j]->{'created'};
-			    //print "<br />  <pre> <h3>" . $curl_issues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
-	      }
+          $to_status = $history_items[$k]->{'toString'};
+          $from_date = $history[$j]->{'created'};
+          //print "<br />  <pre> <h3>" . $curl_issues[$i]->{'key'} . "</h3>"; print_r($statusDurationObj); print "</pre> <br />";
+        }
       }
     }
     //print "<strong>" . $i . '---' . $to_status . "</strong> ---" . time() . "---" . strtotime($from_date) . "<br />";
@@ -521,45 +520,43 @@ function transform_to_status_column_series($curl_issues, $status_list) {
 
   //create the array of series
   $seriesArr = array();
-  foreach($status_list as $status) {
+  foreach ($status_list as $status) {
     //print "<br />"; print_r($status[id]); print "<br />";
     $temp_obj = new stdClass;
     $temp_obj->{'name'} = "'" . $status . "'";
     $temp_obj->{'data'} = array();
 
     //loop through the issue array
-    for($i=0; $i < count($issue_array); $i++) {
+    for ($i = 0; $i < count($issue_array); $i++) {
       //print "<br /> " . $i . "-- " . " <pre>"; print_r($issueArray[$i]); print "</pre> <br />";
       //loop through the history of each issue if there are issues
-      if(count($issue_array[$i]->{'issueStatuses'}) > 0) {
-	      $duration_sum = 0;
-	      for($j=0; $j < count($issue_array[$i]->{'issue_statuses'}); $j++) {
-			    if($status == $issue_array[$i]->{'issue_statuses'}[$j]->{'status'}) {
-					  $duration_sum += $issue_array[$i]->{'issue_statuses'}[$j]->{'duration'};
-			    }
-	      }
-	      if ($duration_sum > 0) {
-			    $temp_bj->{'data'}[] = $duration_sum/60/60/24;
-	      }
-	      else {
-			    $temp_obj->{'data'}[] = 0;
-	      }
-      }
-      else {
-	      $temp_obj->{'data'}[] = 0;
+      if (count($issue_array[$i]->{'issueStatuses'}) > 0) {
+        $duration_sum = 0;
+        for ($j = 0; $j < count($issue_array[$i]->{'issue_statuses'}); $j++) {
+          if ($status == $issue_array[$i]->{'issue_statuses'}[$j]->{'status'}) {
+            $duration_sum += $issue_array[$i]->{'issue_statuses'}[$j]->{'duration'};
+          }
+        }
+        if ($duration_sum > 0) {
+          $temp_bj->{'data'}[] = $duration_sum / 60 / 60 / 24;
+        } else {
+          $temp_obj->{'data'}[] = 0;
+        }
+      } else {
+        $temp_obj->{'data'}[] = 0;
       }
       //print "<br /> <h3> " . $i . "-- " . $issueArray[$i]->{'issueKey'} . "</h3> <pre>"; print_r($tempObj); print "</pre> <br />";
     }
     $series_arr[] = $temp_obj;
   }
-  return array($series_arr,$key_array);
+  return array($series_arr, $key_array);
 }
 
 function getArrayStatusNum($status_array, $status_string) {
   $x = -1;
 
-  for($i=0; $i<count($status_array); $i++){
-    if ($status_array[$i]->{'name'} == "'".$status_string."'") {
+  for ($i = 0; $i < count($status_array); $i++) {
+    if ($status_array[$i]->{'name'} == "'" . $status_string . "'") {
       $x = $i;
       break;
     }
@@ -584,7 +581,7 @@ function custom_columnrange_jira_options($xaxis_categories, $series) {
   $options->xAxis->labels->enabled = true;
   $options->xAxis->minRange = 1;
   //$options->xAxis->max = 30;
-  $options->yAxis->minRange = 2*24*3600000; //fourteen days
+  $options->yAxis->minRange = 2 * 24 * 3600000; //fourteen days
   $options->yAxis->type = 'datetime';
   $options->yAxis->labels->rotation = -45;
 
@@ -592,17 +589,17 @@ function custom_columnrange_jira_options($xaxis_categories, $series) {
   //$options->scrollbar->enabled = true;
   $options->plotOptions->columnrange->grouping = false;
   $options->plotOptions->columnrange->groupPadding = 0;
-  $options->series=$series;
+  $options->series = $series;
 
   return $options;
 }
 
 /**
  * Column chart high charts object.
- * 
+ *
  * @see highcharts_render()
  */
-function custom_column_jira_options($xaxis_categories,$series) {
+function custom_column_jira_options($xaxis_categories, $series) {
   $options = new stdClass();
   $options->chart->type = 'bar';
   $options->title->text = 'Title placeholder';
@@ -622,7 +619,7 @@ function custom_column_jira_options($xaxis_categories,$series) {
   //$options->rangeSelector->selected = 30;
   //$options->scrollbar->enabled = true;
   $options->plotOptions->series->stacking = 'normal';
-  $options->series=$series;
+  $options->series = $series;
 
   return $options;
 }

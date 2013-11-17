@@ -1,13 +1,13 @@
 <?php
 
 /**
-* @file
-* Jira installation
-*/
+ * @file
+ * Jira installation
+ */
 
 /**
-* Implements hook_install()
-*/
+ * Implements hook_install()
+ */
 function jira_analysis_install() {
   //get localization function for installation as t() may be unavailable
   $t = get_t();
@@ -24,7 +24,7 @@ function jira_analysis_install() {
 
   //define a content type
   $content_type = array(
-    'type'=> 'jira_analysis',
+    'type' => 'jira_analysis',
     'name' => $t('Jira Analysis'),
     'description' => $t('A report of Jira Tickets'),
     'title_label' => $t('Report Type'),
@@ -62,16 +62,16 @@ function jira_analysis_install() {
   );
 
   $chartList = array(
-		'gantt' => t('Gantt'),
-		'column' => t('Column'),
-		'bar' => t('Bar'),
-		'queuedTime' => t('Queued Time'),
+    'gantt' => t('Gantt'),
+    'column' => t('Column'),
+    'bar' => t('Bar'),
+    'queuedTime' => t('Queued Time'),
   );
 
   $fields['jira_analysis_chart_type'] = array(
-		'field_name' => 'jira_analysis_chart_type',
-		'type' => 'list_text',
-		'options' => $chartList,
+    'field_name' => 'jira_analysis_chart_type',
+    'type' => 'list_text',
+    'options' => $chartList,
   );
 
   //loop through the array and create fields
@@ -106,15 +106,15 @@ function jira_analysis_install() {
   );
 
   $instances['jira_analysis_chart_type'] = array(
-		'field_name' => 'jira_analysis_chart_type',
-		'label' => $t('Chart Type'),
-		'description' => $t('Chart type to display'),
-		'widget' => array(
-	    'type' => 'options_select'
-		),
-		'required' => TRUE,
+    'field_name' => 'jira_analysis_chart_type',
+    'label' => $t('Chart Type'),
+    'description' => $t('Chart type to display'),
+    'widget' => array(
+      'type' => 'options_select'
+    ),
+    'required' => TRUE,
   );
- 
+
   foreach ($instances as $instance) {
     $instance['entity_type'] = 'node';
     $instance['bundle'] = 'jira_analysis';
@@ -123,73 +123,73 @@ function jira_analysis_install() {
 }
 
 /**
-* Implements hook_schema
-*/
+ * Implements hook_schema
+ */
 function jira_analysis_schema() {
   $t = get_t();
   $schema['jira_analysis_status'] = array(
     'fields' => array(
-	    'status_id' => array('type' => 'varchar', 'length' => 20, 'not null' => TRUE),
-	    'status_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE),
-	    'status_description' => array('type' => 'varchar', 'length' => 150, 'not null' => TRUE),
-	    'created' => array('type' => 'int', 'not null' => TRUE),
+      'status_id' => array('type' => 'varchar', 'length' => 20, 'not null' => TRUE),
+      'status_name' => array('type' => 'varchar', 'length' => 50, 'not null' => TRUE),
+      'status_description' => array('type' => 'varchar', 'length' => 150, 'not null' => TRUE),
+      'created' => array('type' => 'int', 'not null' => TRUE),
     ),
   );
   drupal_set_message($t('Jira Analysis Status table created'));
 
-   $schema['jira_ref_cumulative_flow'] = array(
-	   'fields' => array(
-			  'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
-			  'cf_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
-			  'cf_type_description' => array('type' => 'varchar', 'length' => '500'),
-			  'created' => array('type' => 'int', 'not null' => TRUE),
-			  'updated' => array('type' => 'int'),
-	   ),
-		 'primary key' => array('cf_type_id'),
-   );
-   $schema['jira_cumulative_flow'] = array(
-		  'fields' => array(
-			  'cf_id' => array('type' => 'serial', 'not null' => TRUE ),
-				'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
-				'cf_daily_thruput' => array('type' => 'int', 'default' => 0),
-				'cf_daily_wip' => array('type'=> 'int', 'default' => 0),
-				'cf_date' => array('type' => 'int', 'not null'=> TRUE),
-				'created' => array('type' => 'int', 'not null' => TRUE),
-		  ),
-		  'primary key' => array('cf_id'),
-   );
+  $schema['jira_ref_cumulative_flow'] = array(
+    'fields' => array(
+      'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
+      'cf_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
+      'cf_type_description' => array('type' => 'varchar', 'length' => '500'),
+      'created' => array('type' => 'int', 'not null' => TRUE),
+      'updated' => array('type' => 'int'),
+    ),
+    'primary key' => array('cf_type_id'),
+  );
+  $schema['jira_cumulative_flow'] = array(
+    'fields' => array(
+      'cf_id' => array('type' => 'serial', 'not null' => TRUE),
+      'cf_type_id' => array('type' => 'int', 'not null' => TRUE),
+      'cf_daily_thruput' => array('type' => 'int', 'default' => 0),
+      'cf_daily_wip' => array('type' => 'int', 'default' => 0),
+      'cf_date' => array('type' => 'int', 'not null' => TRUE),
+      'created' => array('type' => 'int', 'not null' => TRUE),
+    ),
+    'primary key' => array('cf_id'),
+  );
 
-   $schema['jira_ref_cycle_time'] = array(
-	   'fields' => array(
-		   'ct_type_id' => array('type' => 'serial', 'not null' => TRUE),
-			 'ct_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
-			 'ct_type_description' => array('type' => 'varchar', 'length' => '500'),
-			 'created' => array('type' => 'int', 'not null' => TRUE),
-			 'updated' => array('type' => 'int'),
-		 ),
-		 'primary key' => array('ct_type_id'),
-   );
+  $schema['jira_ref_cycle_time'] = array(
+    'fields' => array(
+      'ct_type_id' => array('type' => 'serial', 'not null' => TRUE),
+      'ct_type_name' => array('type' => 'varchar', 'length' => '60', 'not null' => TRUE),
+      'ct_type_description' => array('type' => 'varchar', 'length' => '500'),
+      'created' => array('type' => 'int', 'not null' => TRUE),
+      'updated' => array('type' => 'int'),
+    ),
+    'primary key' => array('ct_type_id'),
+  );
 
-   $schema['jira_cycle_time'] = array(
-	   'fields' => array(
-		   'ct_id' => array('type' => 'serial', 'not null' => TRUE),
-			 'ct_type_id' => array('type' => 'int', 'not null' => TRUE),
-			 'ct_date' => array('type' => 'int', 'not null' => TRUE),
-			 'ct_avg' => array('type' => 'float', 'not null' => TRUE),
-			 'ct_std_dev' => array('type' => 'float', 'not null' => TRUE),
-			 'ct_median' => array('type' => 'float', 'not null' => TRUE),
-		 ),
-	   'primary key' => array('ct_id'),
-   );
+  $schema['jira_cycle_time'] = array(
+    'fields' => array(
+      'ct_id' => array('type' => 'serial', 'not null' => TRUE),
+      'ct_type_id' => array('type' => 'int', 'not null' => TRUE),
+      'ct_date' => array('type' => 'int', 'not null' => TRUE),
+      'ct_avg' => array('type' => 'float', 'not null' => TRUE),
+      'ct_std_dev' => array('type' => 'float', 'not null' => TRUE),
+      'ct_median' => array('type' => 'float', 'not null' => TRUE),
+    ),
+    'primary key' => array('ct_id'),
+  );
 
   return $schema;
 }
 
 
 /**
-* Implements hook_uninstall()
-*/
-function jira_analysis_uninstall(){
+ * Implements hook_uninstall()
+ */
+function jira_analysis_uninstall() {
   $t = get_t();
 
   //Delete variables
@@ -212,7 +212,7 @@ function jira_analysis_uninstall(){
   $result = db_query($sql_query, array(':type' => 'jira_analysis'));
 
   $nids = array();
-  foreach ($result as $row){
+  foreach ($result as $row) {
     $nids[] = $row->nid;
   }
 
@@ -221,7 +221,7 @@ function jira_analysis_uninstall(){
   drupal_set_message($t('Jira Analysis Content removed'));
 
   // Remove all fields and field instances
-  foreach (field_info_instances('node','jira_analysis') as $field_name => $instance) {
+  foreach (field_info_instances('node', 'jira_analysis') as $field_name => $instance) {
     field_delete_instance($instance);
   }
 
