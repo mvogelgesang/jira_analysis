@@ -267,7 +267,7 @@ function jira_analysis_theme($existing, $type, $theme, $path) {
  *
  */
 function theme_jira_analysis($variables) {
-  module_load_include('inc', 'highcharts');
+  module_load_include('module', 'highcharts');
   //$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
   $jql = urlencode($variables['node']->{'jira_analysis_jql'}['und'][0]['value']);
   $search_string = 'search?jql=' . $jql . '&fields=key,resolution,fixVersions,status,-description,-customfield_10245,-customfield_10246';
@@ -277,11 +277,13 @@ function theme_jira_analysis($variables) {
   
   //what statuses are we looking at
   $status_list = build_status_list($variables);
+  dpm($curl_issues);
   dpm($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']);
   //call functions to generate different chart types
   switch ($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']) {
     case 'column':
       $status_column_series_array = transform_to_status_column_series($curl_issues, $status_list);
+
       $xaxis_categories = $status_column_series_array[1];
       $series = $status_column_series_array[0];
       $options = custom_column_jira_options($xaxis_categories, $series);
@@ -302,7 +304,7 @@ function theme_jira_analysis($variables) {
       break;
   }
   $attributes = array('style' => array('height: 700px;'));
-	dpm($options);
+  dpm($options);
   return highcharts_render($options, $attributes);
 }
 
@@ -335,7 +337,7 @@ function build_status_list($variables) {
  *  A Jira object containing ID, Key, fields (created date, status, changelog)
  */
 function getIssueDetails($issue_key) {
-  $url = 'issue/' . $issue_key . '?fields=created,status&expand=changelog';
+  $url = 'issue/' . $issue_key . '?fields=*all&expand=changelog'; //created,status,resolutionDate&expand=changelog';
   return getJiraResp($url);
 }
 
@@ -367,12 +369,13 @@ function getJiraResp($query_string) {
 }
 
 function transform_to_gantt_series($curl_issues, $status_list) {
-  $gantt = createArrayOfStatusObj($status_list);
+  $gantt = create_array_of_status_obj($status_list);
 
   for ($i = 0; $i < count($curl_issues); $i++) {
     $key_array[] = $curl_issues[$i]->{'key'};
     //get an extended object back representing the current ticket
     $current_issue = getIssueDetails($curl_issues[$i]->{'key'});
+    dpm($current_issue);
     //get the cangelog history from that ticket
     $history = $current_issue->{'changelog'}->{'histories'};
 
@@ -427,7 +430,7 @@ function transform_to_gantt_series($curl_issues, $status_list) {
 /**
  *
  */
-function createArrayOfStatusObj($status_list) {
+function create_array_of_status_obj($status_list) {
   $status_array = array();
 
   foreach ($status_list as $status) {
@@ -448,11 +451,12 @@ function createArrayOfStatusObj($status_list) {
  * @return array
  */
 function transform_to_status_column_series($curl_issues, $status_list) {
+dpm($curl_issues);
   for ($i = 0; $i < count($curl_issues); $i++) {
     $key_array[] = $curl_issues[$i]->{'key'};
     //get an extended object back representing the current ticket
     $current_issue = getIssueDetails($curl_issues[$i]->{'key'});
-		dpm($current_issue);
+    //dpm($current_issue);
     //get the cangelog history from that ticket
     $history = $current_issue->{'changelog'}->{'histories'};
 
@@ -464,19 +468,22 @@ function transform_to_status_column_series($curl_issues, $status_list) {
     $temp_issue = new stdClass;
     $temp_issue->key = $curl_issues[$i]->{'key'};
     //create an array of the issues and their resolution status
-		if ($curl_issues[$i]->{'fields'}->{'resolution'} == NULL) {
+
+		/*if (!is_object($curl_issues[$i]->{'fields'}->{'resolution'})) {
 		 $temp_issue->resolution = NULL;
 		 $temp_issue->resolution_date = NULL;
 		}
-		else {
+		else { */
       $temp_issue->resolution = $curl_issues[$i]->{'fields'}->{'resolution'}->{'name'};
-		}
-		if (property_exists($curl_issues[$i]->{'fields'},'resolutionDate')) {
-		  $temp_issue->resolution_date = $curl_issues[$i]->{'fields'}->{'resolutionDate'};  
-		}
+		//}
+    //dpm(property_exists($curl_issues[$i]->{'fields'},'resolutionDate'));
+		//if (property_exists($curl_issues[$i]->{'fields'},'resolutionDate')) {
+
+		$temp_issue->resolution_date = $current_issue->{'fields'}->{'resolutiondate'};
+		/*}
     else {
 		 $temp_issue->resolution_date = NULL;
-		}
+		}*/
     //insert the date the ticket was created
     $temp_issue->created_date = $current_issue->{'fields'}->{'created'};
 
@@ -531,6 +538,7 @@ function transform_to_status_column_series($curl_issues, $status_list) {
     }
     $issue_array[] = $temp_issue;
   }
+  dpm($issue_array);
   //print "<pre>"; print_r($temp_issue->{'issueStatuses'}); print "</pre>";
   //$resolutionArray = getIssueResolutionArray($issueArray);
   //print "<pre>"; print_r($resolutionArray); print "</pre>";
@@ -556,7 +564,7 @@ function transform_to_status_column_series($curl_issues, $status_list) {
 			    }
 	      }
 	      if ($duration_sum > 0) {
-			    $temp_bj->{'data'}[] = $duration_sum/60/60/24;
+			    $temp_obj->{'data'}[] = $duration_sum/60/60/24;
 	      }
 	      else {
 			    $temp_obj->{'data'}[] = 0;
