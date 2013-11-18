@@ -176,7 +176,7 @@ function jira_analysis_admin_settings_form_validate($form, &$form_state) {
   $resp = curl_exec($ch);
   $resp_split = list($header, $body) = explode("\r\n\r\n", $resp, 2);
   $json_resp = json_decode($resp_split[1]);
-  var_dump($json_resp);
+  dpm($json_resp);
 
   $resp_code = curl_getinfo($ch,CURLINFO_HTTP_CODE);
   if ($resp_code != 200) {
@@ -226,7 +226,7 @@ function create_status_list_options($jira_status_list_response) {
 function jira_analysis_admin_settings_form_submit($form, &$form_state) {
   //Rebuild the form.
   $form_state['rebuild'] = TRUE;
-
+  dpm($form_state);
   // Save jira setting variables
   variable_set('jira_analysis_default_url', $form_state['values']['jira_analysis_default_url']);
   variable_set('jira_analysis_default_user_name', $form_state['values']['jira_analysis_default_user_name']);
@@ -269,17 +269,16 @@ function jira_analysis_theme($existing, $type, $theme, $path) {
  */
 function theme_jira_analysis($variables) {
   module_load_include('inc', 'highcharts');
-  dpm($variables);
   //$jql = urlencode('status in (slated, "Code Review in Progress", "Development in Progress", "Stakeholder Review in Progress", "Staged for QA", "Newly Released", "Queued for Code Review", "Queued for Staging QA") AND team != "interns" and project in ("IN", WH, PT, CLB, apvr, edash, ostpc) ORDER BY createdDate asc');
   $jql = urlencode($variables['node']->{'jira_analysis_jql'}['und'][0]['value']);
   $search_string = 'search?jql=' . $jql . '&fields=key,resolution,fixVersions,status,-description,-customfield_10245,-customfield_10246';
 
   $json_resp = getJiraResp($search_string);
   $curl_issues = $json_resp->{'issues'};
-
+  
   //what statuses are we looking at
   $status_list = build_status_list($variables);
-
+  dpm($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']);
   //call functions to generate different chart types
   switch($variables['node']->{'jira_analysis_chart_type'}['und'][0]['value']) {
   case 'column':
@@ -304,6 +303,7 @@ function theme_jira_analysis($variables) {
     break;
   }
   $attributes = array('style' => array('height: 700px;'));
+	dpm($options);
   return highcharts_render($options, $attributes);
 }
 
@@ -449,10 +449,12 @@ function createArrayOfStatusObj($status_list) {
  * @return array
  */
 function transform_to_status_column_series($curl_issues, $status_list) {
+  dpm($curl_issues);
   for($i=0; $i < count($curl_issues); $i++) {
     $key_array[] = $curl_issues[$i]->{'key'};
     //get an extended object back representing the current ticket
     $current_issue = getIssueDetails($curl_issues[$i]->{'key'});
+		dpm($current_issue);
     //get the cangelog history from that ticket
     $history = $current_issue->{'changelog'}->{'histories'};
 
@@ -464,8 +466,19 @@ function transform_to_status_column_series($curl_issues, $status_list) {
     $temp_issue = new stdClass;
     $temp_issue->key = $curl_issues[$i]->{'key'};
     //create an array of the issues and their resolution status
-    $temp_issue->resolution = $curl_issues[$i]->{'fields'}->{'resolution'}->{'name'};
-    $temp_issue->resolution_date = $curl_issues[$i]->{'fields'}->{'resolutionDate'};
+		if ($curl_issues[$i]->{'fields'}->{'resolution'} == NULL) {
+		 $temp_issue->resolution = NULL;
+		 $temp_issue->resolution_date = NULL;
+		}
+		else {
+      $temp_issue->resolution = $curl_issues[$i]->{'fields'}->{'resolution'}->{'name'};
+		}
+		if (property_exists($curl_issues[$i]->{'fields'},'resolutionDate')) {
+		  $temp_issue->resolution_date = $curl_issues[$i]->{'fields'}->{'resolutionDate'};  
+		}
+    else {
+		 $temp_issue->resolution_date = NULL;
+		}
     //insert the date the ticket was created
     $temp_issue->created_date = $current_issue->{'fields'}->{'created'};
 
@@ -487,7 +500,12 @@ function transform_to_status_column_series($curl_issues, $status_list) {
 			    $status_obj->from_id = $history_items[$k]->{'from'};
 			    $status_obj->to_string = $history_items[$k]->{'toString'};
 			    $status_obj->to_id = $history_items[$k]->{'to'};
-			    $status_obj->author = $history[$j]->{'author'}->{'displayName'};
+			    if (property_exists($history[$j],'author')) {
+					  $status_obj->author = $history[$j]->{'author'}->{'displayName'}; 
+					}
+					else {
+					  $status_obj->author = '';
+					}
 			    $status_obj->created_date = $history[$j]->{'created'};
 			    $temp_issue->{'issue_change_log'}[] = $status_obj;
 			    //print $curl_issues[$i]->{'key'} . '  status of: ' . $history_items[$k]->{'fromString'} . ' to a status of: ' . $history_items[$k]->{'toString'} . ' on ' . date('m/d/y h:i a ',strtotime($history[$j]->{'created'})) . "<br />";
@@ -512,7 +530,7 @@ function transform_to_status_column_series($curl_issues, $status_list) {
       $temp_status_obj->status = $to_status;
       $temp_issue->{'issue_statuses'}[] = $temp_status_obj;
     }
-    $issueArray[] = $temp_issue;
+    $issue_array[] = $temp_issue;
   }
   //print "<pre>"; print_r($temp_issue->{'issueStatuses'}); print "</pre>";
   //$resolutionArray = getIssueResolutionArray($issueArray);
@@ -531,7 +549,7 @@ function transform_to_status_column_series($curl_issues, $status_list) {
     for($i=0; $i < count($issue_array); $i++) {
       //print "<br /> " . $i . "-- " . " <pre>"; print_r($issueArray[$i]); print "</pre> <br />";
       //loop through the history of each issue if there are issues
-      if(count($issue_array[$i]->{'issueStatuses'}) > 0) {
+      if(count($issue_array[$i]->{'issue_statuses'}) > 0) {
 	      $duration_sum = 0;
 	      for($j=0; $j < count($issue_array[$i]->{'issue_statuses'}); $j++) {
 			    if($status == $issue_array[$i]->{'issue_statuses'}[$j]->{'status'}) {
